@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Top Menu -->
+        <menuitem id="menu_networkpilot_root" 
+                  name="Networkpilot" 
+                  sequence="10"/>
+
+        <!-- Sub Menus -->
+        <menuitem id="menu_networkpilot_contacts" 
+                  name="Contacts" 
+                  parent="menu_networkpilot_root" 
+                  sequence="10"/>
+
+        <menuitem id="menu_networkpilot_interactions" 
+                  name="Interactions" 
+                  parent="menu_networkpilot_root" 
+                  sequence="20"/>
+
+        <menuitem id="menu_networkpilot_reminders" 
+                  name="Reminders" 
+                  parent="menu_networkpilot_root" 
+                  sequence="30"/>
+
+        <menuitem id="menu_networkpilot_configuration" 
+                  name="Configuration" 
+                  parent="menu_networkpilot_root" 
+                  sequence="100"/>
+                  
+        <!-- Categories and Tags will go under Configuration -->
+    </data>
+</odoo>

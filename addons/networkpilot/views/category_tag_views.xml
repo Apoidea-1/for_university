@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Category Tree View -->
+        <record id="view_networkpilot_category_tree" model="ir.ui.view">
+            <field name="name">networkpilot.category.tree</field>
+            <field name="model">networkpilot.category</field>
+            <field name="arch" type="xml">
+                <tree editable="bottom">
+                    <field name="name"/>
+                    <field name="color" widget="colorpicker"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_networkpilot_category" model="ir.actions.act_window">
+            <field name="name">Categories</field>
+            <field name="res_model">networkpilot.category</field>
+            <field name="view_mode">tree</field>
+        </record>
+
+        <!-- Tag Tree View -->
+        <record id="view_networkpilot_tag_tree" model="ir.ui.view">
+            <field name="name">networkpilot.tag.tree</field>
+            <field name="model">networkpilot.tag</field>
+            <field name="arch" type="xml">
+                <tree editable="bottom">
+                    <field name="name"/>
+                </tree>
+            </field>
+        </record>
+
+        <record id="action_networkpilot_tag" model="ir.actions.act_window">
+            <field name="name">Tags</field>
+            <field name="res_model">networkpilot.tag</field>
+            <field name="view_mode">tree</field>
+        </record>
+
+        <!-- Menu items -->
+        <menuitem id="menu_networkpilot_categories" 
+                  name="Categories" 
+                  parent="menu_networkpilot_configuration" 
+                  action="action_networkpilot_category" 
+                  sequence="10"/>
+
+        <menuitem id="menu_networkpilot_tags" 
+                  name="Tags" 
+                  parent="menu_networkpilot_configuration" 
+                  action="action_networkpilot_tag" 
+                  sequence="20"/>
+    </data>
+</odoo>
