@@ -24,7 +24,19 @@ class NetworkPilotAPI(http.Controller):
 
         # Try to authenticate via Odoo
         db = request.db
-        uid = request.session.authenticate(db, email, password)
+        
+        # Odoo 18 Fix: Pass credentials as a dictionary
+        credential = {
+            'login': email,
+            'password': password,
+            'type': 'password'
+        }
+        
+        try:
+            auth_info = request.session.authenticate(db, credential)
+            uid = request.session.uid
+        except Exception as e:
+            return self._json_response({'detail': str(e)}, status=401)
 
         if not uid:
             return self._json_response({'detail': 'Invalid email or password'}, status=401)
@@ -68,13 +80,24 @@ class NetworkPilotAPI(http.Controller):
                 'login': email,
                 'password': password,
                 'groups_id': [(6, 0, [request.env.ref('base.group_user').id])],
+                # Odoo 18 Fix: Explicitly set company to avoid NOT NULL constraint errors
+                'company_id': 1,
+                'company_ids': [(4, 1)],
             })
         except Exception as e:
             return self._json_response({'detail': str(e)}, status=500)
 
         # Authenticate immediately after registration
         db = request.db
-        uid = request.session.authenticate(db, email, password)
+        
+        # Odoo 18 Fix: Pass credentials as a dictionary
+        credential = {
+            'login': email,
+            'password': password,
+            'type': 'password'
+        }
+        auth_info = request.session.authenticate(db, credential)
+        uid = request.session.uid
 
         return self._json_response({
             "access_token": request.session.sid,
