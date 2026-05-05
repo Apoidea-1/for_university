@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- Contact Tree View -->
+        <record id="view_networkpilot_contact_tree" model="ir.ui.view">
+            <field name="name">networkpilot.contact.tree</field>
+            <field name="model">networkpilot.contact</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="full_name"/>
+                    <field name="email"/>
+                    <field name="company"/>
+                    <field name="role"/>
+                    <field name="category_id"/>
+                    <field name="importance_level"/>
+                    <field name="last_interaction_date"/>
+                </list>
+            </field>
+        </record>
+
+        <!-- Contact Form View -->
+        <record id="view_networkpilot_contact_form" model="ir.ui.view">
+            <field name="name">networkpilot.contact.form</field>
+            <field name="model">networkpilot.contact</field>
+            <field name="arch" type="xml">
+                <form>
+                    <header>
+                        <button name="action_suggest_metadata" type="object" string="AI Suggest Metadata" class="oe_highlight"/>
+                        <button name="action_suggest_next_action" type="object" string="AI Suggest Next Action"/>
+                    </header>
+                    <sheet>
+                        <div class="oe_title">
+                            <h1>
+                                <field name="first_name" placeholder="First Name"/>
+                                <field name="last_name" placeholder="Last Name"/>
+                            </h1>
+                        </div>
+                        <group>
+                            <group>
+                                <field name="email" widget="email"/>
+                                <field name="phone" widget="phone"/>
+                                <field name="company"/>
+                                <field name="role"/>
+                            </group>
+                            <group>
+                                <field name="category_id"/>
+                                <field name="importance_level"/>
+                                <field name="source_where_met"/>
+                                <field name="tag_ids" widget="many2many_tags"/>
+                            </group>
+                        </group>
+                        <notebook>
+                            <page string="Social">
+                                <group>
+                                    <field name="telegram"/>
+                                    <field name="linkedin"/>
+                                    <field name="other_social"/>
+                                </group>
+                            </page>
+                            <page string="Notes">
+                                <field name="notes" placeholder="Notes about this contact..."/>
+                            </page>
+                            <page string="Interactions">
+                                <field name="interaction_ids">
+                                    <list>
+                                        <field name="interaction_date"/>
+                                        <field name="interaction_type"/>
+                                        <field name="title"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="Reminders">
+                                <field name="reminder_ids">
+                                    <list>
+                                        <field name="due_date"/>
+                                        <field name="title"/>
+                                        <field name="status"/>
+                                    </list>
+                                </field>
+                            </page>
+                            <page string="AI Suggestions">
+                                <field name="ai_suggestion_ids" readonly="1">
+                                    <list>
+                                        <field name="create_date"/>
+                                        <field name="suggestion_type"/>
+                                        <field name="content"/>
+                                    </list>
+                                </field>
+                            </page>
+                        </notebook>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+
+        <!-- Kanban View (optional but requested to start with standard views) -->
+        <record id="view_networkpilot_contact_kanban" model="ir.ui.view">
+            <field name="name">networkpilot.contact.kanban</field>
+            <field name="model">networkpilot.contact</field>
+            <field name="arch" type="xml">
+                <kanban>
+                    <field name="id"/>
+                    <field name="full_name"/>
+                    <field name="category_id"/>
+                    <field name="importance_level"/>
+                    <templates>
+                        <t t-name="kanban-box">
+                            <div class="oe_kanban_global_click">
+                                <div class="o_kanban_record_title">
+                                    <strong><field name="full_name"/></strong>
+                                </div>
+                                <div>
+                                    <field name="category_id"/>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="tag_ids" widget="many2many_tags"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="importance_level" widget="badge" 
+                                               decoration-danger="importance_level == 'strategic'" 
+                                               decoration-warning="importance_level == 'high'"
+                                               decoration-info="importance_level == 'medium'"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </t>
+                    </templates>
+                </kanban>
+            </field>
+        </record>
+
+        <!-- Search View -->
+        <record id="view_networkpilot_contact_search" model="ir.ui.view">
+            <field name="name">networkpilot.contact.search</field>
+            <field name="model">networkpilot.contact</field>
+            <field name="arch" type="xml">
+                <search>
+                    <field name="full_name" string="Name"/>
+                    <field name="email"/>
+                    <field name="company"/>
+                    <field name="category_id"/>
+                    <field name="tag_ids"/>
+                    <filter string="Strategic" name="strategic" domain="[('importance_level', '=', 'strategic')]"/>
+                    <group expand="0" string="Group By">
+                        <filter string="Category" name="group_by_category" context="{'group_by':'category_id'}"/>
+                        <filter string="Importance" name="group_by_importance" context="{'group_by':'importance_level'}"/>
+                    </group>
+                </search>
+            </field>
+        </record>
+
+        <!-- Action -->
+        <record id="action_networkpilot_contact" model="ir.actions.act_window">
+            <field name="name">Contacts</field>
+            <field name="res_model">networkpilot.contact</field>
+            <field name="view_mode">kanban,list,form</field>
+            <field name="help" type="html">
+              <p class="o_view_nocontent_smiling_face">
+                Create your first Contact!
+              </p>
+            </field>
+        </record>
+
+        <!-- Menu item under Contacts -->
+        <menuitem id="menu_networkpilot_contacts_all" 
+                  name="All Contacts" 
+                  parent="menu_networkpilot_contacts" 
+                  action="action_networkpilot_contact" 
+                  sequence="10"/>
+    </data>
+</odoo>
