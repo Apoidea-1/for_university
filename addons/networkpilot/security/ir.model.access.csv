@@ -1,9 +1,0 @@
-id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
-access_networkpilot_category_user,networkpilot.category.user,model_networkpilot_category,group_networkpilot_user,1,1,1,1
-access_networkpilot_tag_user,networkpilot.tag.user,model_networkpilot_tag,group_networkpilot_user,1,1,1,1
-access_networkpilot_contact_user,networkpilot.contact.user,model_networkpilot_contact,group_networkpilot_user,1,1,1,1
-access_networkpilot_interaction_user,networkpilot.interaction.user,model_networkpilot_interaction,group_networkpilot_user,1,1,1,1
-access_networkpilot_reminder_user,networkpilot.reminder.user,model_networkpilot_reminder,group_networkpilot_user,1,1,1,1
-access_networkpilot_ai_suggestion_user,networkpilot.ai_suggestion.user,model_networkpilot_ai_suggestion,group_networkpilot_user,1,1,1,1
-access_networkpilot_integration_user,networkpilot.integration.user,model_networkpilot_integration,group_networkpilot_user,1,1,1,1
-access_networkpilot_activity_log_user,networkpilot.activity_log.user,model_networkpilot_activity_log,group_networkpilot_user,1,1,1,1
