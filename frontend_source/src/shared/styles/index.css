@@ -1,0 +1,46 @@
+@import url("https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.18), transparent 32%),
+    radial-gradient(circle at 85% 15%, rgba(244, 228, 193, 0.1), transparent 22%),
+    linear-gradient(180deg, #07111f 0%, #091524 100%);
+}
+
+#root {
+  min-height: 100vh;
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 163, 184, 0.35) transparent;
+}
+
+.glass-panel {
+  @apply rounded-3xl border border-borderSoft bg-panel/85 shadow-panel backdrop-blur;
+}
+
+.page-shell {
+  @apply mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8;
+}
+
+.workspace-shell {
+  @apply w-full max-w-none px-3 py-6 sm:px-5 lg:px-6 xl:px-8 2xl:px-10;
+}
+
+.field-label {
+  @apply mb-2 block text-sm font-semibold text-slate-300;
+}
+
+.field-hint {
+  @apply mt-2 text-xs text-slate-400;
+}
