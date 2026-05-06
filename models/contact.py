@@ -3,6 +3,7 @@ from odoo import models, fields, api
 class Contact(models.Model):
     _name = 'networkpilot.contact'
     _description = 'Contact'
+    _rec_name = 'full_name'
     _order = 'last_interaction_date desc, id desc'
 
     # Note: Odoo standard models like res.partner could be used, but since we are migrating

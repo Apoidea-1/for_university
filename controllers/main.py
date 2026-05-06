@@ -1,10 +1,9 @@
 import os
-import odoo
 from odoo import http
 from odoo.http import request
 
 class NetworkPilotApp(http.Controller):
-    @http.route(['/app', '/app/<path:path>'], type='http', auth='user', website=True)
+    @http.route(['/app', '/app/<path:path>'], type='http', auth='user')
     def serve_app(self, **kwargs):
         """
         Serves the React application.
@@ -12,7 +11,7 @@ class NetworkPilotApp(http.Controller):
         """
         # We read the index.html from our static directory and return it.
         # This allows React Router to handle all paths under /app.
-        addon_path = odoo.modules.get_module_path('networkPilotNew')
+        addon_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         index_file = os.path.join(addon_path, 'static', 'app', 'index.html')
         
         try:

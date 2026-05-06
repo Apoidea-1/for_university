@@ -3,6 +3,7 @@ from odoo import models, fields
 class Reminder(models.Model):
     _name = 'networkpilot.reminder'
     _description = 'Reminder'
+    _rec_name = 'title'
     _order = 'due_date, id desc'
 
     contact_id = fields.Many2one('networkpilot.contact', string='Contact', ondelete='cascade')

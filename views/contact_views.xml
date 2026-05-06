@@ -104,7 +104,7 @@
                     <field name="category_id"/>
                     <field name="importance_level"/>
                     <templates>
-                        <t t-name="kanban-box">
+                        <t t-name="card">
                             <div class="oe_kanban_global_click">
                                 <div class="o_kanban_record_title">
                                     <strong><field name="full_name"/></strong>
