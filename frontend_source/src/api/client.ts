@@ -11,7 +11,11 @@ export class ApiError extends Error {
 
 export async function apiRequest<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
-  headers.set("Content-Type", "application/json");
+  headers.set("Accept", "application/json");
+  headers.set("X-Requested-With", "XMLHttpRequest");
+  if (init?.body) {
+    headers.set("Content-Type", "application/json");
+  }
 
   // We use credentials:'include' so the browser automatically sends
   // the Odoo session cookie (session_id) with every request.

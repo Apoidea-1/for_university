@@ -1,5 +1,7 @@
 import json
 from datetime import date, datetime, time, timedelta, timezone
+from difflib import SequenceMatcher
+from urllib.parse import urlparse
 
 from odoo import fields, http
 from odoo.http import request
@@ -57,6 +59,24 @@ class NetworkPilotAPI(http.Controller):
         if value in (None, ''):
             return False
         return str(value).strip()
+
+    def _is_same_origin(self):
+        host_url = request.httprequest.host_url.rstrip('/')
+        allowed = {host_url}
+        origin = (request.httprequest.headers.get('Origin') or '').rstrip('/')
+        referer = request.httprequest.headers.get('Referer') or ''
+        if origin:
+            return origin in allowed
+        if referer:
+            parsed = urlparse(referer)
+            referer_origin = f'{parsed.scheme}://{parsed.netloc}'.rstrip('/')
+            return referer_origin in allowed
+        return False
+
+    def _forbid_cross_origin(self):
+        if not self._is_same_origin():
+            return self._json_response({'detail': 'Cross-origin request denied'}, status=403)
+        return None
 
     def _get_networkpilot_group(self):
         return request.env['res.groups'].sudo().search([
@@ -240,8 +260,53 @@ class NetworkPilotAPI(http.Controller):
                     'metadata_json': '{}',
                 })
 
+    def _score_contact_match(self, contact, search_term):
+        if not search_term:
+            return 0
+        needle = search_term.lower()
+        fields_to_rank = [
+            contact.full_name or '',
+            contact.first_name or '',
+            contact.last_name or '',
+            contact.company or '',
+            contact.role or '',
+            contact.email or '',
+            contact.phone or '',
+            contact.telegram or '',
+            contact.linkedin or '',
+            contact.notes or '',
+            ' '.join(contact.tag_ids.mapped('name')),
+        ]
+        score = 0
+        for raw_value in fields_to_rank:
+            value = raw_value.lower().strip()
+            if not value:
+                continue
+            if value == needle:
+                score = max(score, 240)
+            elif value.startswith(needle):
+                score = max(score, 180)
+            elif f' {needle}' in f' {value}':
+                score = max(score, 135)
+            elif needle in value:
+                score = max(score, 100)
+            ratio = SequenceMatcher(None, needle, value[: max(len(needle) * 2, len(value))]).ratio()
+            if ratio >= 0.7:
+                score = max(score, int(ratio * 90))
+        if contact.importance_level == 'strategic':
+            score += 12
+        elif contact.importance_level == 'high':
+            score += 8
+        if contact.last_interaction_date:
+            days_since = (date.today() - contact.last_interaction_date.date()).days
+            score += max(0, 14 - min(days_since, 14))
+        return score
+
     @http.route('/api/v1/auth/login', type='http', auth='public', methods=['POST'], csrf=False)
     def login(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -263,7 +328,7 @@ class NetworkPilotAPI(http.Controller):
         user = request.env['res.users'].sudo().browse(uid)
         self._ensure_user_group(user)
         return self._json_response({
-            'access_token': request.session.sid,
+            'access_token': 'session',
             'token_type': 'session',
             'user': {
                 'id': user.id,
@@ -276,6 +341,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/auth/register', type='http', auth='public', methods=['POST'], csrf=False)
     def register(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -316,7 +384,7 @@ class NetworkPilotAPI(http.Controller):
             return self._json_response({'detail': str(exc)}, status=401)
 
         return self._json_response({
-            'access_token': request.session.sid,
+            'access_token': 'session',
             'token_type': 'session',
             'user': {
                 'id': new_user.id,
@@ -326,6 +394,17 @@ class NetworkPilotAPI(http.Controller):
                 'updated_at': new_user.write_date,
             },
         }, status=201)
+
+    @http.route('/api/v1/auth/logout', type='http', auth='user', methods=['POST'], csrf=False)
+    def logout(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        try:
+            request.session.logout(keep_db=True)
+        except TypeError:
+            request.session.logout()
+        return self._json_response(status=204)
 
     @http.route('/api/v1/auth/me', type='http', auth='user', methods=['GET'], csrf=False)
     def get_me(self, **kwargs):
@@ -442,6 +521,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/categories', type='http', auth='user', methods=['POST'], csrf=False)
     def create_category(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -464,6 +546,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/tags', type='http', auth='user', methods=['POST'], csrf=False)
     def create_tag(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -483,12 +568,16 @@ class NetworkPilotAPI(http.Controller):
         search = self._clean_text(args.get('search'))
         if search:
             domain += [
-                '|', '|', '|', '|', '|',
+                '|', '|', '|', '|', '|', '|', '|', '|', '|',
                 ('first_name', 'ilike', search),
                 ('last_name', 'ilike', search),
                 ('company', 'ilike', search),
                 ('role', 'ilike', search),
                 ('email', 'ilike', search),
+                ('phone', 'ilike', search),
+                ('telegram', 'ilike', search),
+                ('linkedin', 'ilike', search),
+                ('notes', 'ilike', search),
                 ('tag_ids.name', 'ilike', search),
             ]
 
@@ -513,8 +602,22 @@ class NetworkPilotAPI(http.Controller):
         offset = (page - 1) * per_page
 
         Contact = request.env['networkpilot.contact'].sudo()
-        total = Contact.search_count(domain)
-        contacts = Contact.search(domain, order=order, limit=per_page, offset=offset)
+        if search:
+            candidate_limit = min(max(per_page * 5, 150), 600)
+            candidates = Contact.search(domain, order='write_date desc, create_date desc', limit=candidate_limit)
+            ranked_contacts = sorted(
+                candidates,
+                key=lambda contact: (
+                    -self._score_contact_match(contact, search),
+                    contact.full_name or '',
+                    -(contact.id or 0),
+                ),
+            )
+            total = len(ranked_contacts)
+            contacts = ranked_contacts[offset : offset + per_page]
+        else:
+            total = Contact.search_count(domain)
+            contacts = Contact.search(domain, order=order, limit=per_page, offset=offset)
         return self._json_response({
             'total': total,
             'items': [self._contact_payload(contact) for contact in contacts],
@@ -522,6 +625,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/contacts', type='http', auth='user', methods=['POST'], csrf=False)
     def create_contact(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -533,6 +639,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/contacts/quick-add', type='http', auth='user', methods=['POST'], csrf=False)
     def quick_add_contact(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -559,6 +668,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/contacts/<int:contact_id>', type='http', auth='user', methods=['PATCH'], csrf=False)
     def update_contact(self, contact_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         contact = self._get_contact(contact_id)
         if not contact:
             return self._json_response({'detail': 'Contact not found'}, status=404)
@@ -572,6 +684,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/contacts/<int:contact_id>', type='http', auth='user', methods=['DELETE'], csrf=False)
     def delete_contact(self, contact_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         contact = self._get_contact(contact_id)
         if not contact:
             return self._json_response({'detail': 'Contact not found'}, status=404)
@@ -590,6 +705,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/contacts/<int:contact_id>/interactions', type='http', auth='user', methods=['POST'], csrf=False)
     def create_interaction(self, contact_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         contact = self._get_contact(contact_id)
         if not contact:
             return self._json_response({'detail': 'Contact not found'}, status=404)
@@ -610,6 +728,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/interactions/<int:interaction_id>', type='http', auth='user', methods=['DELETE'], csrf=False)
     def delete_interaction(self, interaction_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         interaction = request.env['networkpilot.interaction'].sudo().search([
             ('id', '=', interaction_id),
             ('contact_id.user_id', '=', self._current_user_id()),
@@ -637,6 +758,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/reminders', type='http', auth='user', methods=['POST'], csrf=False)
     def create_reminder(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -660,6 +784,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/reminders/<int:reminder_id>', type='http', auth='user', methods=['PATCH'], csrf=False)
     def update_reminder(self, reminder_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         reminder = request.env['networkpilot.reminder'].sudo().search([
             ('id', '=', reminder_id),
             ('user_id', '=', self._current_user_id()),
@@ -686,6 +813,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/reminders/<int:reminder_id>', type='http', auth='user', methods=['DELETE'], csrf=False)
     def delete_reminder(self, reminder_id, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         reminder = request.env['networkpilot.reminder'].sudo().search([
             ('id', '=', reminder_id),
             ('user_id', '=', self._current_user_id()),
@@ -697,6 +827,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/ai/suggest-contact-metadata', type='http', auth='user', methods=['POST'], csrf=False)
     def suggest_contact_metadata(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -725,6 +858,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/ai/suggest-next-action', type='http', auth='user', methods=['POST'], csrf=False)
     def suggest_next_action(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         data = self._json_payload()
         if data is None:
             return self._bad_json()
@@ -743,6 +879,9 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/integrations/<string:provider>/connect-mock', type='http', auth='user', methods=['POST'], csrf=False)
     def connect_mock_integration(self, provider, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
         if provider not in self.PROVIDERS:
             return self._json_response({'detail': 'Unknown provider'}, status=404)
         self._ensure_integrations()

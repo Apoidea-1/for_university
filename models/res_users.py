@@ -9,3 +9,5 @@ class ResUsers(models.Model):
     tag_ids = fields.One2many('networkpilot.tag', 'user_id', string='Networkpilot Tags')
     integration_ids = fields.One2many('networkpilot.integration', 'user_id', string='Networkpilot Integrations')
     activity_log_ids = fields.One2many('networkpilot.activity_log', 'user_id', string='Networkpilot Activity Logs')
+    contact_relationship_ids = fields.One2many('networkpilot.contact_relationship', 'user_id', string='Networkpilot Contact Relationships')
+    contact_message_ids = fields.One2many('networkpilot.contact_message', 'user_id', string='Networkpilot Contact Messages')

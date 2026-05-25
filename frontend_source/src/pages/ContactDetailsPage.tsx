@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { suggestNextAction } from "@/api/ai";
+import { getContactStrategy } from "@/api/ai";
 import { createInteraction, deleteContact, deleteInteraction, getContact, listInteractions } from "@/api/contacts";
 import { createReminder } from "@/api/reminders";
 import { Alert } from "@/components/ui/Alert";
@@ -67,11 +67,7 @@ export function ContactDetailsPage() {
 
   const nextActionMutation = useMutation({
     mutationFn: async () =>
-      suggestNextAction({
-        notes: contactQuery.data?.notes ?? "",
-        last_interaction_summary: interactionsQuery.data?.[0]?.title,
-        contact_id: contactQuery.data?.id,
-      }),
+      getContactStrategy(contactId as string),
     onError: (error) => {
       setAiError(error instanceof Error ? error.message : "Не удалось получить подсказку ИИ");
     },
@@ -179,7 +175,33 @@ export function ContactDetailsPage() {
             {nextActionMutation.data ? (
               <div className="rounded-2xl border border-accent/20 bg-accent/10 p-4">
                 <p className="font-semibold text-white">{nextActionMutation.data.next_action}</p>
-                <p className="mt-2 text-sm text-slate-300">{nextActionMutation.data.rationale}</p>
+                <p className="mt-2 text-sm text-slate-300">{nextActionMutation.data.summary}</p>
+                <div className="mt-4 grid gap-3">
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Канал</p>
+                    <p className="mt-1 text-sm text-slate-200">{nextActionMutation.data.recommended_channel}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Цель встречи</p>
+                    <p className="mt-1 text-sm text-slate-200">{nextActionMutation.data.meeting_goal}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Окно</p>
+                    <p className="mt-1 text-sm text-slate-200">{nextActionMutation.data.meeting_window}</p>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Повестка</p>
+                    <ul className="mt-2 space-y-1 text-sm text-slate-200">
+                      {nextActionMutation.data.agenda.map((item) => (
+                        <li key={item}>• {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div>
+                    <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Черновик сообщения</p>
+                    <p className="mt-1 text-sm text-slate-200">{nextActionMutation.data.message_draft}</p>
+                  </div>
+                </div>
               </div>
             ) : null}
             <Button onClick={() => nextActionMutation.mutate()} loading={nextActionMutation.isPending}>

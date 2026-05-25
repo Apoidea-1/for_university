@@ -103,6 +103,34 @@ export interface NextActionSuggestion {
   rationale: string;
 }
 
+export interface ContactStrategy {
+  source: "heuristic" | "remote";
+  summary: string;
+  recommended_channel: string;
+  next_action: string;
+  meeting_goal: string;
+  meeting_window: string;
+  agenda: string[];
+  message_draft: string;
+  risk_flags: string[];
+}
+
+export interface BusinessCardScanResult {
+  source: "remote";
+  full_name: string | null;
+  first_name: string | null;
+  last_name: string | null;
+  company: string | null;
+  role: string | null;
+  email: string | null;
+  phone: string | null;
+  website: string | null;
+  telegram: string | null;
+  linkedin: string | null;
+  notes: string | null;
+  confidence: number | null;
+}
+
 export interface AnalyticsOverview {
   new_contacts_7d: number;
   new_contacts_30d: number;
@@ -131,6 +159,90 @@ export interface StaleContact {
   company: string | null;
   last_interaction_date: string | null;
   days_since_last_interaction: number | null;
+}
+
+export interface ContactPreview {
+  id: number;
+  full_name: string;
+  first_name: string;
+  last_name: string | null;
+  company: string | null;
+  role: string | null;
+  importance_level: ImportanceLevel;
+  status: "active" | "target" | "dormant";
+}
+
+export interface ContactRelationship {
+  id: number;
+  user_id: number;
+  source_contact: ContactPreview;
+  target_contact: ContactPreview;
+  relationship_type: string;
+  strength: number;
+  shared_context: string | null;
+  notes: string | null;
+  last_active_at: string | null;
+  message_count: number;
+  interaction_count: number;
+  is_bridge: boolean;
+  pair_key: string;
+}
+
+export interface NetworkGraphNode {
+  id: number | "user";
+  label: string;
+  status: "active" | "target" | "dormant" | "self";
+  color: string;
+  size: number;
+  degree: number;
+  is_bridge: boolean;
+  importance_level?: ImportanceLevel;
+  company?: string | null;
+  category_name?: string | null;
+}
+
+export interface NetworkGraphLink {
+  source: number | "user";
+  target: number | "user";
+  weight: number;
+  kind: string;
+  pair_key?: string;
+}
+
+export interface NetworkGraphSummary {
+  total_contacts: number;
+  total_relationships: number;
+  active_contacts: number;
+  target_contacts: number;
+  dormant_contacts: number;
+  bridge_contacts: number;
+  bridge_names: string[];
+}
+
+export interface NetworkGraphData {
+  nodes: NetworkGraphNode[];
+  links: NetworkGraphLink[];
+  summary: NetworkGraphSummary;
+}
+
+export interface ContactMessage {
+  id: number;
+  pair_key: string;
+  sender_contact: ContactPreview;
+  recipient_contact: ContactPreview;
+  body: string;
+  message_type: "chat" | "note" | "follow_up" | "meeting";
+  sent_at: string;
+  metadata_json: Record<string, unknown>;
+  is_ai_draft: boolean;
+}
+
+export interface ConversationSummary {
+  pair_key: string;
+  participants: ContactPreview[];
+  last_message: ContactMessage;
+  message_count: number;
+  relationship: ContactRelationship | null;
 }
 
 export interface Integration {

@@ -12,27 +12,31 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { IntegrationsPage } from "@/pages/IntegrationsPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
+import { MessagesPage } from "@/pages/MessagesPage";
+import { NetworkPage } from "@/pages/NetworkPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
 import { RemindersPage } from "@/pages/RemindersPage";
 
+const appBasename = (import.meta.env.VITE_APP_BASENAME ?? "/app").replace(/\/$/, "") || "/";
+
 function ProtectedLayout() {
-  const { token, isBootstrapping } = useAuth();
+  const { user, isBootstrapping } = useAuth();
   if (isBootstrapping) {
     return <Spinner />;
   }
-  if (!token) {
+  if (!user) {
     return <Navigate to="/login" replace />;
   }
   return <AppShell />;
 }
 
 function PublicOnly({ children }: { children: ReactElement }) {
-  const { token, isBootstrapping } = useAuth();
+  const { user, isBootstrapping } = useAuth();
   if (isBootstrapping) {
     return <Spinner />;
   }
-  if (token) {
+  if (user) {
     return <Navigate to="/dashboard" replace />;
   }
   return children;
@@ -40,7 +44,7 @@ function PublicOnly({ children }: { children: ReactElement }) {
 
 export function AppRouter() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={appBasename}>
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route
@@ -66,6 +70,8 @@ export function AppRouter() {
           <Route path="/contacts/new" element={<AddContactPage />} />
           <Route path="/contacts/:contactId" element={<ContactDetailsPage />} />
           <Route path="/contacts/:contactId/edit" element={<AddContactPage />} />
+          <Route path="/network" element={<NetworkPage />} />
+          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/reminders" element={<RemindersPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />

@@ -78,6 +78,20 @@
             <field name="groups" eval="[(4, ref('group_networkpilot_user'))]"/>
         </record>
 
+        <record id="rule_networkpilot_contact_relationship_personal" model="ir.rule">
+            <field name="name">Personal Contact Relationships</field>
+            <field name="model_id" ref="model_networkpilot_contact_relationship"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_networkpilot_user'))]"/>
+        </record>
+
+        <record id="rule_networkpilot_contact_message_personal" model="ir.rule">
+            <field name="name">Personal Contact Messages</field>
+            <field name="model_id" ref="model_networkpilot_contact_message"/>
+            <field name="domain_force">[('user_id', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_networkpilot_user'))]"/>
+        </record>
+
         <!-- Manager Rules (See All) -->
         <record id="rule_networkpilot_contact_all" model="ir.rule">
             <field name="name">All Contacts</field>

@@ -25,7 +25,7 @@ type FormValues = z.infer<typeof schema>;
 
 export function LoginPage() {
   const navigate = useNavigate();
-  const { setSession, token } = useAuth();
+  const { setSession, user } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -36,16 +36,16 @@ export function LoginPage() {
   });
 
   useEffect(() => {
-    if (token) {
+    if (user) {
       navigate("/dashboard", { replace: true });
     }
-  }, [navigate, token]);
+  }, [navigate, user]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setError(null);
     try {
       const response = await login(values);
-      setSession(response.access_token, response.user);
+      setSession(response.user);
       navigate("/dashboard", { replace: true });
     } catch (submitError) {
       setError(submitError instanceof Error ? submitError.message : "Не удалось войти");

@@ -1,0 +1,5 @@
+__pycache__/
+*.py[cod]
+frontend_source/node_modules/
+frontend_source/.npm-cache/
+.publish-remote/

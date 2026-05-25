@@ -18,3 +18,9 @@ export function login(payload: { email: string; password: string }) {
 export function getCurrentUser() {
   return apiRequest<User>("/api/v1/auth/me");
 }
+
+export function logout() {
+  return apiRequest<void>("/api/v1/auth/logout", {
+    method: "POST",
+  });
+}

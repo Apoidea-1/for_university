@@ -12,8 +12,15 @@ import { Card } from "@/components/ui/Card";
 import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
+import { BusinessCardScanner } from "@/features/contacts/BusinessCardScanner";
 import { importanceLabels } from "@/shared/lib/labels";
-import type { Category, Contact, ContactMetadataSuggestion, ImportanceLevel } from "@/types/api";
+import type {
+  BusinessCardScanResult,
+  Category,
+  Contact,
+  ContactMetadataSuggestion,
+  ImportanceLevel,
+} from "@/types/api";
 
 const schema = z.object({
   first_name: z.string({ required_error: "Введите имя" }).min(1, "Введите имя"),
@@ -76,6 +83,7 @@ export function ContactForm({
 }) {
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<ContactMetadataSuggestion | null>(null);
+
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -108,7 +116,7 @@ export function ContactForm({
       }),
     onSuccess: setSuggestion,
     onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : "Не удалось получить подсказку ИИ");
+      setError(mutationError instanceof Error ? mutationError.message : "Не удалось получить AI-подсказку.");
     },
   });
 
@@ -133,6 +141,37 @@ export function ContactForm({
     }
   };
 
+  const applyBusinessCard = (result: BusinessCardScanResult) => {
+    const fallbackParts = (result.full_name || "").split(" ").filter(Boolean);
+    if (result.first_name || fallbackParts[0]) {
+      form.setValue("first_name", result.first_name || fallbackParts[0] || "");
+    }
+    if (result.last_name || fallbackParts.slice(1).join(" ")) {
+      form.setValue("last_name", result.last_name || fallbackParts.slice(1).join(" "));
+    }
+    if (result.company) {
+      form.setValue("company", result.company);
+    }
+    if (result.role) {
+      form.setValue("role", result.role);
+    }
+    if (result.email) {
+      form.setValue("email", result.email);
+    }
+    if (result.phone) {
+      form.setValue("phone", result.phone);
+    }
+    if (result.telegram) {
+      form.setValue("telegram", result.telegram);
+    }
+    if (result.linkedin) {
+      form.setValue("linkedin", result.linkedin);
+    }
+    if (result.notes && !form.getValues("notes")) {
+      form.setValue("notes", result.notes);
+    }
+  };
+
   const handleSubmit = form.handleSubmit(async (values) => {
     setError(null);
     try {
@@ -153,7 +192,7 @@ export function ContactForm({
         tag_names: parseTags(values.tag_names_text),
       });
     } catch (submitError) {
-      setError(submitError instanceof Error ? submitError.message : "Не удалось сохранить контакт");
+      setError(submitError instanceof Error ? submitError.message : "Не удалось сохранить контакт.");
     }
   });
 
@@ -175,8 +214,8 @@ export function ContactForm({
               <Input {...form.register("company")} placeholder="Future HR" />
             </div>
             <div>
-              <label className="field-label">Должность</label>
-              <Input {...form.register("role")} placeholder="Рекрутер" />
+              <label className="field-label">Роль</label>
+              <Input {...form.register("role")} placeholder="Recruiter" />
             </div>
             <div>
               <label className="field-label">Где познакомились</label>
@@ -192,7 +231,7 @@ export function ContactForm({
               </Select>
             </div>
             <div>
-              <label className="field-label">Почта</label>
+              <label className="field-label">Email</label>
               <Input {...form.register("email")} placeholder="elena@futurehr.io" />
             </div>
             <div>
@@ -209,7 +248,7 @@ export function ContactForm({
             </div>
             <div>
               <label className="field-label">Другая соцсеть</label>
-              <Input {...form.register("other_social")} placeholder="Behance, X или другая площадка" />
+              <Input {...form.register("other_social")} placeholder="X, Behance, GitHub и т.д." />
             </div>
             <div>
               <label className="field-label">Категория</label>
@@ -228,14 +267,14 @@ export function ContactForm({
             <label className="field-label">Заметки</label>
             <Textarea
               {...form.register("notes")}
-              placeholder="О чем говорили, что важно запомнить и к чему вернуться позже."
+              placeholder="Контекст знакомства, сильные стороны, договорённости и точки возврата."
             />
           </div>
 
           <div>
             <label className="field-label">Теги</label>
-            <Input {...form.register("tag_names_text")} placeholder="стажировка, карьера, HR" />
-            <p className="field-hint">Список через запятую. Если тега нет, он будет создан автоматически.</p>
+            <Input {...form.register("tag_names_text")} placeholder="карьера, hr, internship" />
+            <p className="field-hint">Список через запятую. Новые теги создадутся автоматически.</p>
           </div>
 
           {error ? <Alert>{error}</Alert> : null}
@@ -250,52 +289,57 @@ export function ContactForm({
               loading={aiMutation.isPending}
               onClick={() => aiMutation.mutate()}
             >
-              Получить подсказки ИИ
+              Получить AI-подсказки
             </Button>
           </div>
         </form>
       </Card>
 
-      <Card className="h-fit">
-        <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">Помощник ИИ</p>
-        <h3 className="mt-3 text-xl font-bold text-white">Превратите сырые заметки в структурированную карточку.</h3>
-        <p className="mt-2 text-sm text-slate-400">
-          Тестовый модуль ИИ подсказывает категорию, теги, краткий вывод и следующий шаг. Архитектура уже готова для
-          подключения реальной модели позже.
-        </p>
+      <div className="space-y-6">
+        <Card className="h-fit">
+          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">AI helper</p>
+          <h3 className="mt-3 text-xl font-bold text-white">Соберите карточку быстрее и чище.</h3>
+          <p className="mt-2 text-sm text-slate-400">
+            Агент даёт рекомендации по категории, тегам и следующему шагу на основе заметок и контекста контакта.
+          </p>
 
-        {suggestion ? (
-          <div className="mt-6 space-y-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Категория</p>
-              <p className="mt-2 text-lg font-semibold text-white">{suggestion.category}</p>
-            </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Рекомендуемые теги</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {suggestion.tags.map((tag) => (
-                  <Badge key={tag}>{tag}</Badge>
-                ))}
+          {suggestion ? (
+            <div className="mt-6 space-y-4">
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Категория</p>
+                <p className="mt-2 text-lg font-semibold text-white">{suggestion.category}</p>
               </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Теги</p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {suggestion.tags.map((tag) => (
+                    <Badge key={tag}>{tag}</Badge>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Краткий вывод</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.note_summary}</p>
+              </div>
+              <div>
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Следующий шаг</p>
+                <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.next_action}</p>
+              </div>
+              <Button className="w-full" variant="secondary" onClick={applySuggestion}>
+                Подставить в форму
+              </Button>
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Краткий вывод</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.note_summary}</p>
+          ) : (
+            <div className="mt-8 rounded-2xl border border-dashed border-borderSoft p-4 text-sm text-slate-400">
+              Добавьте заметку и нажмите <span className="font-semibold text-slate-200">«Получить AI-подсказки»</span>.
             </div>
-            <div>
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Следующее действие</p>
-              <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.next_action}</p>
-            </div>
-            <Button className="w-full" variant="secondary" onClick={applySuggestion}>
-              Подставить в форму
-            </Button>
-          </div>
-        ) : (
-          <div className="mt-8 rounded-2xl border border-dashed border-borderSoft p-4 text-sm text-slate-400">
-            Добавьте заметку и нажмите <span className="font-semibold text-slate-200">Получить подсказки ИИ</span>.
-          </div>
-        )}
-      </Card>
+          )}
+        </Card>
+
+        <Card className="h-fit">
+          <BusinessCardScanner onApply={applyBusinessCard} />
+        </Card>
+      </div>
     </div>
   );
 }

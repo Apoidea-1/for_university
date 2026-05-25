@@ -8,16 +8,14 @@ import {
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import { ApiError } from "@/api/client";
-import { getCurrentUser } from "@/api/auth";
-import { authStorage } from "@/shared/lib/storage";
+import { getCurrentUser, logout as logoutRequest } from "@/api/auth";
 import type { User } from "@/types/api";
 
 interface AuthContextValue {
-  token: string | null;
   user: User | null;
   isBootstrapping: boolean;
-  setSession: (token: string, user?: User | null) => void;
-  logout: () => void;
+  setSession: (user: User | null) => void;
+  logout: () => Promise<void>;
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,24 +31,16 @@ const queryClient = new QueryClient({
 });
 
 function AuthProvider({ children }: PropsWithChildren) {
-  const [token, setToken] = useState<string | null>(() => authStorage.getToken());
-  const [user, setUser] = useState<User | null>(() => authStorage.getUser());
-  const [isBootstrapping, setIsBootstrapping] = useState(Boolean(token));
+  const [user, setUser] = useState<User | null>(null);
+  const [isBootstrapping, setIsBootstrapping] = useState(true);
 
   useEffect(() => {
-    if (!token) {
-      setIsBootstrapping(false);
-      setUser(null);
-      authStorage.clearSession();
-      return;
-    }
-
     let cancelled = false;
     setIsBootstrapping(true);
+
     getCurrentUser()
       .then((currentUser) => {
         if (!cancelled) {
-          authStorage.setUser(currentUser);
           setUser(currentUser);
         }
       })
@@ -58,15 +48,11 @@ function AuthProvider({ children }: PropsWithChildren) {
         if (cancelled) {
           return;
         }
-
         if (error instanceof ApiError && error.status === 401) {
-          authStorage.clearSession();
-          setToken(null);
           setUser(null);
           return;
         }
-
-        setUser(authStorage.getUser());
+        setUser(null);
       })
       .finally(() => {
         if (!cancelled) {
@@ -77,33 +63,27 @@ function AuthProvider({ children }: PropsWithChildren) {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
-      token,
       user,
       isBootstrapping,
-      setSession(nextToken, nextUser) {
-        authStorage.setToken(nextToken);
-        setToken(nextToken);
-        if (nextUser) {
-          authStorage.setUser(nextUser);
-          setUser(nextUser);
-          setIsBootstrapping(false);
-          return;
-        }
-        setUser(null);
-        setIsBootstrapping(true);
+      setSession(nextUser) {
+        setUser(nextUser);
+        setIsBootstrapping(false);
       },
-      logout() {
-        authStorage.clearSession();
-        setToken(null);
+      async logout() {
+        try {
+          await logoutRequest();
+        } catch {
+          // Keep local state authoritative even if the network request races.
+        }
         setUser(null);
         queryClient.clear();
       },
     }),
-    [isBootstrapping, token, user],
+    [isBootstrapping, user],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
