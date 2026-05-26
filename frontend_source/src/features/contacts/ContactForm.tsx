@@ -19,7 +19,6 @@ import type {
   BusinessCardScanResult,
   Category,
   Contact,
-  ContactMetadataSuggestion,
   ImportanceLevel,
 } from "@/types/api";
 
@@ -83,7 +82,6 @@ export function ContactForm({
   submitting?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
-  const [suggestion, setSuggestion] = useState<ContactMetadataSuggestion | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
@@ -104,43 +102,6 @@ export function ContactForm({
       tag_names_text: (defaultContact?.tags ?? []).map((tag) => tag.name).join(", "),
     },
   });
-
-  const aiMutation = useMutation({
-    mutationFn: async () =>
-      suggestContactMetadata({
-        notes: form.getValues("notes") ?? "",
-        first_name: form.getValues("first_name"),
-        company: form.getValues("company"),
-        role: form.getValues("role"),
-        source_where_met: form.getValues("source_where_met"),
-        contact_id: defaultContact?.id,
-      }),
-    onSuccess: setSuggestion,
-    onError: (mutationError) => {
-      setError(mutationError instanceof Error ? mutationError.message : "Не удалось получить AI-подсказку.");
-    },
-  });
-
-  const categoryNameMap = useMemo(
-    () => new Map(categories.map((category) => [category.name.toLowerCase(), category])),
-    [categories],
-  );
-
-  const applySuggestion = () => {
-    if (!suggestion) {
-      return;
-    }
-    const category = categoryNameMap.get(suggestion.category.toLowerCase());
-    if (category) {
-      form.setValue("category_id", String(category.id));
-    }
-    const currentTags = parseTags(form.getValues("tag_names_text"));
-    const merged = Array.from(new Set([...currentTags, ...suggestion.tags]));
-    form.setValue("tag_names_text", merged.join(", "));
-    if (!form.getValues("notes")) {
-      form.setValue("notes", suggestion.note_summary);
-    }
-  };
 
   const applyBusinessCard = (result: BusinessCardScanResult) => {
     const fallbackParts = (result.full_name || "").split(" ").filter(Boolean);
@@ -297,59 +258,11 @@ export function ContactForm({
             <Button type="submit" loading={Boolean(submitting || form.formState.isSubmitting)}>
               {submitLabel}
             </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              loading={aiMutation.isPending}
-              onClick={() => aiMutation.mutate()}
-            >
-              Получить AI-подсказки
-            </Button>
           </div>
         </form>
       </Card>
 
       <div className="space-y-6">
-        <Card className="h-fit">
-          <p className="text-sm font-semibold uppercase tracking-[0.24em] text-accent">AI helper</p>
-          <h3 className="mt-3 text-xl font-bold text-white">Соберите карточку быстрее и чище.</h3>
-          <p className="mt-2 text-sm text-slate-400">
-            Агент даёт рекомендации по категории, тегам и следующему шагу на основе заметок и контекста контакта.
-          </p>
-
-          {suggestion ? (
-            <div className="mt-6 space-y-4">
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Категория</p>
-                <p className="mt-2 text-lg font-semibold text-white">{suggestion.category}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Теги</p>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {suggestion.tags.map((tag) => (
-                    <Badge key={tag}>{tag}</Badge>
-                  ))}
-                </div>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Краткий вывод</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.note_summary}</p>
-              </div>
-              <div>
-                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Следующий шаг</p>
-                <p className="mt-2 text-sm leading-6 text-slate-300">{suggestion.next_action}</p>
-              </div>
-              <Button className="w-full" variant="secondary" onClick={applySuggestion}>
-                Подставить в форму
-              </Button>
-            </div>
-          ) : (
-            <div className="mt-8 rounded-2xl border border-dashed border-borderSoft p-4 text-sm text-slate-400">
-              Добавьте заметку и нажмите <span className="font-semibold text-slate-200">«Получить AI-подсказки»</span>.
-            </div>
-          )}
-        </Card>
-
         <Card className="h-fit">
           <UnstructuredTextParser onApply={applyBusinessCard} />
         </Card>

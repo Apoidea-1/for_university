@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Spinner } from "@/components/ui/Spinner";
 import { ReminderForm } from "@/features/reminders/ReminderForm";
+import { AiRemindersGenerator } from "@/features/reminders/AiRemindersGenerator";
 import { formatDateTime } from "@/shared/lib/format";
 import { getReminderStatusLabel, getReminderTypeLabel } from "@/shared/lib/labels";
 
@@ -72,6 +73,7 @@ export function RemindersPage() {
       />
 
       <div className="space-y-6">
+        <AiRemindersGenerator contacts={contactsQuery.data?.items ?? []} />
         <Card className="flex flex-wrap gap-3">
           {filterOptions.map((option) => (
             <Button

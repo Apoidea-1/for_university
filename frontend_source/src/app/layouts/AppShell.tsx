@@ -12,7 +12,6 @@ const navItems = [
   { label: "Панель", to: "/dashboard" },
   { label: "Контакты", to: "/contacts" },
   { label: "Сеть", to: "/network" },
-  { label: "Чаты", to: "/messages" },
   { label: "Напоминания", to: "/reminders" },
   { label: "Аналитика", to: "/analytics" },
   { label: "Интеграции", to: "/integrations" },
@@ -98,9 +97,6 @@ export function AppShell() {
                   </Link>
                   <Link to="/network">
                     <Button variant="secondary">Открыть граф</Button>
-                  </Link>
-                  <Link to="/messages">
-                    <Button variant="secondary">Открыть чаты</Button>
                   </Link>
                 </div>
               </div>

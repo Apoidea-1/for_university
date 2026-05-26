@@ -12,7 +12,6 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { IntegrationsPage } from "@/pages/IntegrationsPage";
 import { LandingPage } from "@/pages/LandingPage";
 import { LoginPage } from "@/pages/LoginPage";
-import { MessagesPage } from "@/pages/MessagesPage";
 import { NetworkPage } from "@/pages/NetworkPage";
 import { NotFoundPage } from "@/pages/NotFoundPage";
 import { RegisterPage } from "@/pages/RegisterPage";
@@ -71,7 +70,6 @@ export function AppRouter() {
           <Route path="/contacts/:contactId" element={<ContactDetailsPage />} />
           <Route path="/contacts/:contactId/edit" element={<AddContactPage />} />
           <Route path="/network" element={<NetworkPage />} />
-          <Route path="/messages" element={<MessagesPage />} />
           <Route path="/reminders" element={<RemindersPage />} />
           <Route path="/analytics" element={<AnalyticsPage />} />
           <Route path="/integrations" element={<IntegrationsPage />} />

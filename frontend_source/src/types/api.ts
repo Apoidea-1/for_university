@@ -91,6 +91,14 @@ export interface Reminder {
   } | null;
 }
 
+export interface AiReminderSuggestion {
+  contact_id: number;
+  title: string;
+  due_in_days: number;
+  priority: "high" | "medium" | "low";
+  reminder_type: ReminderType;
+}
+
 export interface ContactMetadataSuggestion {
   category: string;
   tags: string[];
@@ -128,6 +136,7 @@ export interface BusinessCardScanResult {
   telegram: string | null;
   linkedin: string | null;
   notes: string | null;
+  tags: string[] | null;
   confidence: number | null;
 }
 

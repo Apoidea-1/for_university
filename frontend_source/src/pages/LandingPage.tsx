@@ -15,10 +15,21 @@ export function LandingPage() {
   const { user, logout } = useAuth();
 
   const handleDemoClick = async () => {
-    if (user) {
-      await logout();
+    try {
+      await fetch("/web/session/destroy", { method: "POST" });
+    } catch (e) {
+      console.error(e);
     }
-    navigate("/register");
+    localStorage.removeItem("session_id");
+    localStorage.removeItem("user_id");
+
+    navigate("/register", {
+      state: {
+        demo: true,
+        email: "demo@demo.com",
+        password: "demopass",
+      },
+    });
   };
 
   return (

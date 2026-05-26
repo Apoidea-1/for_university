@@ -32,3 +32,9 @@ export function deleteReminder(reminderId: string | number) {
     method: "DELETE",
   });
 }
+
+export function suggestAIReminders() {
+  return apiRequest<import("@/types/api").AiReminderSuggestion[]>("/api/v1/network/reminders/ai-suggest", {
+    method: "GET",
+  });
+}

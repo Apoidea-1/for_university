@@ -178,3 +178,64 @@ class LightweightContactAgent:
         return json.loads(contact.model_dump_json())
     def plan_contact_strategy(self, snapshot):
         return {"next_action": "Запланировать follow-up", "summary": "Контакт обновлен."}
+        
+    def suggest_network_reminders(self, contacts_data: List[dict]) -> List[dict]:
+        if not self.is_remote_available:
+            raise RuntimeError("OPENROUTER_API_KEY is not set.")
+            
+        system_prompt = """
+Вы — эксперт по нетворкингу. Пользователь передаст вам список своих контактов в формате JSON.
+Определите 3-5 самых важных контактов, с которыми пользователю стоит связаться прямо сейчас (например, статус "Dormant" (затухающие) или важные контакты, с которыми давно не было общения).
+Для каждого из них предложите конкретное напоминание-действие.
+
+Отвечайте СТРОГО в формате JSON без разметки markdown:
+{
+  "reminders": [
+    {
+      "contact_id": 123,
+      "title": "Короткое действие, например: Написать в TG, поздравить с новым проектом",
+      "due_in_days": 1,
+      "priority": "high",
+      "reminder_type": "reconnect"
+    }
+  ]
+}
+Где "reminder_type" может быть "follow_up", "congratulation", "reconnect" или "custom". "priority" может быть "high", "medium" или "low".
+"""
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Вот список контактов:\n{json.dumps(contacts_data, ensure_ascii=False)}"}
+        ]
+        
+        payload = {
+            "model": self.model,
+            "messages": messages,
+            "temperature": 0.3,
+            "response_format": {"type": "json_object"}
+        }
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib_request.Request(
+            self.endpoint,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {self.api_key}",
+                "HTTP-Referer": "https://networkpilot.app",
+            },
+            method="POST",
+        )
+        try:
+            with urllib_request.urlopen(req, timeout=45) as response:
+                result = json.loads(response.read().decode("utf-8"))
+        except Exception as e:
+            raise RuntimeError(f"API request failed: {e}")
+            
+        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+        fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.S)
+        if fenced:
+            content = fenced.group(1)
+        try:
+            parsed = json.loads(content)
+            return parsed.get("reminders", [])
+        except json.JSONDecodeError:
+            raise RuntimeError(f"Failed to parse JSON: {content}")

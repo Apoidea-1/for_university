@@ -825,6 +825,48 @@ class NetworkPilotAPI(http.Controller):
         reminder.unlink()
         return self._json_response(status=204)
 
+    @http.route('/api/v1/network/reminders/ai-suggest', type='http', auth='user', methods=['GET'], csrf=False)
+    def suggest_ai_reminders(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+            
+        contacts = request.env['networkpilot.contact'].sudo().search([
+            ('user_id', '=', self._current_user_id()),
+            '|', 
+            ('importance_level', 'in', ['high', 'strategic']),
+            ('last_interaction_date', '=', False),
+        ], order='last_interaction_date asc', limit=50)
+        
+        contacts_data = []
+        for c in contacts:
+            contacts_data.append({
+                "id": c.id,
+                "name": c.full_name,
+                "role": c.role or "Unknown",
+                "company": c.company or "Unknown",
+                "importance": c.importance_level,
+                "notes": c.notes or "",
+                "status": "Dormant" if not c.last_interaction_date else "Active",
+                "days_since_interaction": (date.today() - c.last_interaction_date.date()).days if c.last_interaction_date else 999
+            })
+            
+        try:
+            from src.services.ai_agent import LightweightContactAgent
+        except ImportError:
+            # Fallback path if src.services is not resolvable
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from services.ai_agent import LightweightContactAgent
+            
+        try:
+            agent = LightweightContactAgent()
+            suggestions = agent.suggest_network_reminders(contacts_data)
+            return self._json_response(suggestions)
+        except Exception as e:
+            return self._json_response({'detail': str(e)}, status=500)
+
     @http.route('/api/v1/ai/suggest-contact-metadata', type='http', auth='user', methods=['POST'], csrf=False)
     def suggest_contact_metadata(self, **kwargs):
         forbidden = self._forbid_cross_origin()
