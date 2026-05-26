@@ -867,6 +867,63 @@ class NetworkPilotAPI(http.Controller):
         except Exception as e:
             return self._json_response({'detail': str(e)}, status=500)
 
+    @http.route('/api/v1/ai/business-card-scan', type='http', auth='user', methods=['POST'], csrf=False)
+    def business_card_scan(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        data = self._json_payload()
+        if data is None:
+            return self._bad_json()
+            
+        image_base64 = data.get('image_base64')
+        if not image_base64:
+            return self._json_response({'detail': 'image_base64 is required'}, status=400)
+            
+        try:
+            from src.services.ai_agent import LightweightContactAgent
+        except ImportError:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from services.ai_agent import LightweightContactAgent
+            
+        try:
+            agent = LightweightContactAgent()
+            result = agent.extract_business_card(image_base64)
+            return self._json_response(result)
+        except Exception as e:
+            return self._json_response({'detail': str(e)}, status=500)
+
+    @http.route('/api/v1/ai/parse-unstructured-contact', type='http', auth='user', methods=['POST'], csrf=False)
+    def parse_unstructured_contact(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        data = self._json_payload()
+        if data is None:
+            return self._bad_json()
+            
+        text = data.get('text')
+        if not text:
+            return self._json_response({'detail': 'text is required'}, status=400)
+            
+        try:
+            from src.services.ai_agent import LightweightContactAgent
+        except ImportError:
+            import sys
+            import os
+            sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+            from services.ai_agent import LightweightContactAgent
+            
+        try:
+            agent = LightweightContactAgent()
+            contact_obj = agent.process_contact_data(text, is_image=False)
+            import json
+            return self._json_response(json.loads(contact_obj.model_dump_json()))
+        except Exception as e:
+            return self._json_response({'detail': str(e)}, status=500)
+
     @http.route('/api/v1/ai/suggest-contact-metadata', type='http', auth='user', methods=['POST'], csrf=False)
     def suggest_contact_metadata(self, **kwargs):
         forbidden = self._forbid_cross_origin()
