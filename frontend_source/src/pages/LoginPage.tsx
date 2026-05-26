@@ -30,8 +30,8 @@ export function LoginPage() {
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
-      email: "demo@networkpilot.app",
-      password: "DemoPass123!",
+      email: "demo@demo.com",
+      password: "demopass",
     },
   });
 

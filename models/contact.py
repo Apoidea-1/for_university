@@ -44,6 +44,24 @@ class Contact(models.Model):
     reminder_ids = fields.One2many('networkpilot.reminder', 'contact_id', string='Reminders')
     ai_suggestion_ids = fields.One2many('networkpilot.ai_suggestion', 'contact_id', string='AI Suggestions')
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        records = super().create(vals_list)
+        from datetime import timedelta
+        now = fields.Datetime.now()
+        for record in records:
+            if record.importance_level in ['high', 'strategic']:
+                self.env['networkpilot.reminder'].create({
+                    'user_id': record.user_id.id,
+                    'contact_id': record.id,
+                    'title': f'Связаться с {record.full_name} (Новый важный контакт)',
+                    'description': 'AI ассистент рекомендует организовать ознакомительную встречу или звонок для укрепления связи.',
+                    'due_date': now + timedelta(days=2),
+                    'status': 'active',
+                    'reminder_type': 'follow_up'
+                })
+        return records
+
     @api.depends('first_name', 'last_name')
     def _compute_full_name(self):
         for record in self:
@@ -87,3 +105,60 @@ class Contact(models.Model):
                 'action': 'ai_next_action_generated',
                 'payload_json': '{"status": "success", "mock": true}'
             })
+
+    def calculate_current_value(self):
+        self.ensure_one()
+        TAG_WEIGHTS = {
+            "mentor": 20.0,
+            "recruiter": 15.0,
+            "peer": 5.0,
+            "bridge_contact": 25.0
+        }
+        base_weight = 1.0
+        for tag in self.tag_ids:
+            base_weight += TAG_WEIGHTS.get(tag.name.lower(), 0.0)
+
+        INTERACTION_WEIGHTS = {
+            "meeting": 5.0,
+            "call": 4.0,
+            "project": 5.0,
+            "message": 2.0,
+            "other": 1.0
+        }
+        total_value = base_weight
+        now = fields.Datetime.now()
+        decay_lambda = 0.05
+        import math
+        for interaction in self.interaction_ids:
+            if not interaction.interaction_date:
+                continue
+            days_passed = max(0, (now - interaction.interaction_date).days)
+            weight = INTERACTION_WEIGHTS.get(interaction.interaction_type, 1.0)
+            decayed_weight = weight * math.exp(-decay_lambda * days_passed)
+            total_value += decayed_weight
+        return round(total_value, 2)
+
+    @api.model
+    def _cron_evaluate_contacts(self):
+        dormant_threshold = 10.0
+        contacts = self.search([('importance_level', 'in', ['high', 'strategic'])])
+        now = fields.Datetime.now()
+        from datetime import timedelta
+        for contact in contacts:
+            current_value = contact.calculate_current_value()
+            if current_value < dormant_threshold:
+                existing = self.env['networkpilot.reminder'].search([
+                    ('contact_id', '=', contact.id),
+                    ('status', '!=', 'completed'),
+                    ('reminder_type', '=', 'reconnect')
+                ], limit=1)
+                if not existing:
+                    self.env['networkpilot.reminder'].create({
+                        'user_id': contact.user_id.id,
+                        'contact_id': contact.id,
+                        'title': f'Связаться с {contact.full_name} (Затухающий контакт)',
+                        'description': f'Показатель связи с этим контактом упал до {current_value}. Необходимо организовать встречу или созвониться.',
+                        'due_date': now + timedelta(days=2),
+                        'status': 'active',
+                        'reminder_type': 'reconnect'
+                    })

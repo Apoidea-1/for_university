@@ -1,5 +1,6 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 
@@ -10,6 +11,16 @@ const features = [
 ];
 
 export function LandingPage() {
+  const navigate = useNavigate();
+  const { user, logout } = useAuth();
+
+  const handleDemoClick = async () => {
+    if (user) {
+      await logout();
+    }
+    navigate("/register");
+  };
+
   return (
     <div className="page-shell flex min-h-screen flex-col justify-center">
       <div className="grid items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -27,9 +38,9 @@ export function LandingPage() {
             </p>
           </div>
           <div className="flex flex-wrap gap-4">
-            <Link to="/register">
-              <Button className="px-6 py-3 text-base">Попробовать демо</Button>
-            </Link>
+            <Button className="px-6 py-3 text-base" onClick={handleDemoClick}>
+              Попробовать демо
+            </Button>
             <Link to="/login">
               <Button variant="secondary" className="px-6 py-3 text-base">
                 Войти

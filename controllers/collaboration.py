@@ -102,6 +102,8 @@ class NetworkPilotCollaborationAPI(http.Controller):
         }.get(status, "#94a3b8")
 
     def _contact_preview(self, contact):
+        if not contact:
+            return None
         return {
             "id": contact.id,
             "full_name": contact.full_name,
@@ -375,18 +377,18 @@ class NetworkPilotCollaborationAPI(http.Controller):
         data = self._json_payload()
         if data is None:
             return self._bad_json()
-        sender_contact = self._get_contact(data.get("sender_contact_id"))
-        recipient_contact = self._get_contact(data.get("recipient_contact_id"))
-        if not sender_contact or not recipient_contact:
-            return self._json_response({"detail": "Both contacts must exist"}, status=404)
+        sender_contact = self._get_contact(data.get("sender_contact_id")) if data.get("sender_contact_id") else None
+        recipient_contact = self._get_contact(data.get("recipient_contact_id")) if data.get("recipient_contact_id") else None
+        if not sender_contact and not recipient_contact:
+            return self._json_response({"detail": "At least one contact must exist"}, status=404)
         body = self._clean_text(data.get("body"))
         if not body:
             return self._json_response({"detail": "body is required"}, status=400)
         message = request.env["networkpilot.contact_message"].sudo().create(
             {
                 "user_id": self._current_user_id(),
-                "sender_contact_id": sender_contact.id,
-                "recipient_contact_id": recipient_contact.id,
+                "sender_contact_id": sender_contact.id if sender_contact else False,
+                "recipient_contact_id": recipient_contact.id if recipient_contact else False,
                 "body": body,
                 "message_type": data.get("message_type") or "chat",
                 "sent_at": self._parse_datetime(data.get("sent_at")) or fields.Datetime.now(),
@@ -503,6 +505,26 @@ class NetworkPilotCollaborationAPI(http.Controller):
             return self._json_response({"detail": "image_base64 is required"}, status=400)
         try:
             result = LightweightContactAgent().extract_business_card(image_base64)
+        except RuntimeError as exc:
+            return self._json_response({"detail": str(exc)}, status=503)
+        except Exception as exc:
+            return self._json_response({"detail": str(exc)}, status=422)
+        return self._json_response(result)
+
+    @http.route("/api/v1/ai/parse-unstructured-contact", type="http", auth="user", methods=["POST"], csrf=False)
+    def parse_unstructured_contact(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        data = self._json_payload()
+        if data is None:
+            return self._bad_json()
+        raw_text = self._clean_text(data.get("text"))
+        if not raw_text:
+            return self._json_response({"detail": "text is required"}, status=400)
+        try:
+            contact = LightweightContactAgent().process_contact_data(raw_text)
+            result = json.loads(contact.model_dump_json())
         except RuntimeError as exc:
             return self._json_response({"detail": str(exc)}, status=503)
         except Exception as exc:

@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/Input";
 import { Select } from "@/components/ui/Select";
 import { Textarea } from "@/components/ui/Textarea";
 import { BusinessCardScanner } from "@/features/contacts/BusinessCardScanner";
+import { UnstructuredTextParser } from "@/features/contacts/UnstructuredTextParser";
 import { importanceLabels } from "@/shared/lib/labels";
 import type {
   BusinessCardScanResult,
@@ -166,6 +167,19 @@ export function ContactForm({
     }
     if (result.linkedin) {
       form.setValue("linkedin", result.linkedin);
+    }
+    if (result.tags && result.tags.length > 0) {
+      const currentTags = parseTags(form.getValues("tag_names_text"));
+      const merged = Array.from(new Set([...currentTags, ...result.tags]));
+      form.setValue("tag_names_text", merged.join(", "));
+
+      if (merged.includes("bridge_contact") || merged.includes("mentor")) {
+        form.setValue("importance_level", "high");
+      } else if (merged.includes("peer")) {
+        form.setValue("importance_level", "medium");
+      } else {
+        form.setValue("importance_level", "low");
+      }
     }
     if (result.notes && !form.getValues("notes")) {
       form.setValue("notes", result.notes);
@@ -334,6 +348,10 @@ export function ContactForm({
               Добавьте заметку и нажмите <span className="font-semibold text-slate-200">«Получить AI-подсказки»</span>.
             </div>
           )}
+        </Card>
+
+        <Card className="h-fit">
+          <UnstructuredTextParser onApply={applyBusinessCard} />
         </Card>
 
         <Card className="h-fit">

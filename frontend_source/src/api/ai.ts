@@ -32,3 +32,10 @@ export function scanBusinessCard(payload: { image_base64: string }) {
     body: JSON.stringify(payload),
   });
 }
+
+export function parseUnstructuredContact(payload: { text: string }) {
+  return apiRequest<BusinessCardScanResult>("/api/v1/ai/parse-unstructured-contact", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}

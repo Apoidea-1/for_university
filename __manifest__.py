@@ -17,6 +17,7 @@ Manage contacts, interactions, reminders, and AI suggestions.
         'views/interaction_views.xml',
         'views/reminder_views.xml',
         'views/contact_views.xml',
+        'data/ir_cron_data.xml',
     ],
     'installable': True,
     'application': True,

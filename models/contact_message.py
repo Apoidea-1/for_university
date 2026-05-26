@@ -18,14 +18,14 @@ class ContactMessage(models.Model):
     sender_contact_id = fields.Many2one(
         "networkpilot.contact",
         string="Sender",
-        required=True,
+        required=False,
         ondelete="cascade",
         index=True,
     )
     recipient_contact_id = fields.Many2one(
         "networkpilot.contact",
         string="Recipient",
-        required=True,
+        required=False,
         ondelete="cascade",
         index=True,
     )
@@ -49,14 +49,16 @@ class ContactMessage(models.Model):
 
     @api.model
     def build_pair_key(self, sender_contact_id, recipient_contact_id):
-        first, second = sorted([int(sender_contact_id), int(recipient_contact_id)])
+        first, second = sorted([int(sender_contact_id or 0), int(recipient_contact_id or 0)])
         return f"{first}:{second}"
 
     @api.constrains("sender_contact_id", "recipient_contact_id")
     def _check_distinct_contacts(self):
         for record in self:
-            if record.sender_contact_id and record.sender_contact_id == record.recipient_contact_id:
-                raise ValidationError("A message requires two different contacts.")
+            if not record.sender_contact_id and not record.recipient_contact_id:
+                raise ValidationError("A message must be associated with at least one contact.")
+            if record.sender_contact_id and record.recipient_contact_id and record.sender_contact_id == record.recipient_contact_id:
+                raise ValidationError("A message requires two different contacts, or one contact and the user.")
 
     @api.constrains("user_id", "sender_contact_id", "recipient_contact_id")
     def _check_contact_ownership(self):
@@ -70,8 +72,7 @@ class ContactMessage(models.Model):
         for vals in vals_list:
             sender_contact_id = vals.get("sender_contact_id")
             recipient_contact_id = vals.get("recipient_contact_id")
-            if sender_contact_id and recipient_contact_id:
-                vals["pair_key"] = self.build_pair_key(sender_contact_id, recipient_contact_id)
+            vals["pair_key"] = self.build_pair_key(sender_contact_id, recipient_contact_id)
             vals.setdefault("user_id", self.env.user.id)
             vals.setdefault("metadata_json", "{}")
         records = super().create(vals_list)
@@ -87,6 +88,8 @@ class ContactMessage(models.Model):
     def _sync_relationship_activity(self):
         relationships = self.env["networkpilot.contact_relationship"]
         for record in self:
+            if not record.sender_contact_id or not record.recipient_contact_id:
+                continue
             relationship = relationships.search(
                 [
                     ("user_id", "=", record.user_id.id),

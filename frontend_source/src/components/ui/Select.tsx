@@ -11,9 +11,11 @@ export const Select = forwardRef<HTMLSelectElement, SelectHTMLAttributes<HTMLSel
       ref={ref}
       {...props}
       className={cn(
-        "w-full rounded-2xl border border-borderSoft bg-slate-950/50 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-accent",
+        "w-full rounded-2xl border border-borderSoft bg-slate-950/50 px-4 py-3 text-sm text-slate-100 outline-none transition focus:border-accent [&>option]:bg-slate-900 [&>option]:text-slate-100",
         className,
       )}
-    />
+    >
+      {props.children}
+    </select>
   );
 });
