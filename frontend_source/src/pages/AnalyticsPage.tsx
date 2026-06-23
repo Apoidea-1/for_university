@@ -165,7 +165,18 @@ export function AnalyticsPage() {
                         <Cell key={item.category_name} fill={item.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm shadow-xl text-white">
+                              {payload[0].name}: {payload[0].value}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -174,7 +185,19 @@ export function AnalyticsPage() {
                   <BarChart data={categoriesQuery.data ?? []} layout="vertical" margin={{ left: 20 }}>
                     <XAxis type="number" stroke="#64748b" tickLine={false} axisLine={false} allowDecimals={false} />
                     <YAxis type="category" dataKey="category_name" stroke="#64748b" tickLine={false} axisLine={false} width={100} />
-                    <Tooltip />
+                    <Tooltip
+                      cursor={false}
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm shadow-xl text-white">
+                              {payload[0].payload.category_name}: {payload[0].value}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                     <Bar dataKey="count" radius={[0, 10, 10, 0]}>
                       {(categoriesQuery.data ?? []).map((item) => (
                         <Cell key={item.category_name} fill={item.color} />

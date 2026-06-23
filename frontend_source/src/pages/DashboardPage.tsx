@@ -214,7 +214,18 @@ export function DashboardPage() {
                         <Cell key={item.category_name} fill={item.color} />
                       ))}
                     </Pie>
-                    <Tooltip />
+                    <Tooltip
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          return (
+                            <div className="rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm shadow-xl text-white">
+                              {payload[0].name}: {payload[0].value}
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
+                    />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
