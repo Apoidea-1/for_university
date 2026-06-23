@@ -44,6 +44,25 @@ class Contact(models.Model):
     reminder_ids = fields.One2many('networkpilot.reminder', 'contact_id', string='Reminders')
     ai_suggestion_ids = fields.One2many('networkpilot.ai_suggestion', 'contact_id', string='AI Suggestions')
 
+    network_status = fields.Selection([
+        ('target', 'Target'),
+        ('active', 'Active'),
+        ('dormant', 'Dormant')
+    ], string='Network Status', compute='_compute_network_status')
+
+    @api.depends('interaction_ids.interaction_date', 'tag_ids')
+    def _compute_network_status(self):
+        dormant_threshold = 10.0
+        for record in self:
+            if not record.interaction_ids:
+                record.network_status = 'target'
+            else:
+                current_value = record.calculate_current_value()
+                if current_value < dormant_threshold:
+                    record.network_status = 'dormant'
+                else:
+                    record.network_status = 'active'
+
     @api.model_create_multi
     def create(self, vals_list):
         records = super().create(vals_list)
@@ -114,9 +133,9 @@ class Contact(models.Model):
             "peer": 5.0,
             "bridge_contact": 25.0
         }
-        base_weight = 1.0
+        base_weight = 0.0
         for tag in self.tag_ids:
-            base_weight += TAG_WEIGHTS.get(tag.name.lower(), 0.0)
+            base_weight += TAG_WEIGHTS.get(tag.name.lower(), 1.0)
 
         INTERACTION_WEIGHTS = {
             "meeting": 5.0,

@@ -19,6 +19,21 @@ class Reminder(models.Model):
         ('completed', 'Completed')
     ], string='Status', default='active', required=True, index=True)
     
+    def write(self, vals):
+        completed_reminders = self.filtered(lambda r: r.status != 'completed')
+        res = super().write(vals)
+        if vals.get('status') == 'completed':
+            for reminder in completed_reminders:
+                if reminder.contact_id:
+                    self.env['networkpilot.interaction'].create({
+                        'contact_id': reminder.contact_id.id,
+                        'interaction_type': 'other',
+                        'title': f'Выполнено: {reminder.title}',
+                        'description': reminder.description,
+                        'interaction_date': fields.Datetime.now(),
+                    })
+        return res
+    
     reminder_type = fields.Selection([
         ('follow_up', 'Follow Up'),
         ('congratulation', 'Congratulation'),

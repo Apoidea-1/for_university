@@ -250,13 +250,18 @@ class NetworkPilotAPI(http.Controller):
     def _ensure_integrations(self):
         Integration = request.env['networkpilot.integration'].sudo()
         existing = Integration.search([('user_id', '=', self._current_user_id())])
+        
+        for integration in existing:
+            if integration.status != 'coming_soon':
+                integration.status = 'coming_soon'
+                
         existing_providers = set(existing.mapped('provider'))
         for provider in self.PROVIDERS:
             if provider not in existing_providers:
                 Integration.create({
                     'user_id': self._current_user_id(),
                     'provider': provider,
-                    'status': 'not_connected' if provider == 'google_calendar' else 'coming_soon',
+                    'status': 'coming_soon',
                     'metadata_json': '{}',
                 })
 
@@ -449,10 +454,17 @@ class NetworkPilotAPI(http.Controller):
                 ]),
             })
 
+        active_contact_ids = Reminder.search([
+            ('user_id', '=', self._current_user_id()),
+            ('status', '=', 'active'),
+            ('contact_id', '!=', False)
+        ]).mapped('contact_id.id')
+
         stale_count = Contact.search_count(contact_domain + [
             '|',
             ('last_interaction_date', '=', False),
             ('last_interaction_date', '<', stale_before),
+            ('id', 'not in', active_contact_ids),
         ])
 
         return self._json_response({
@@ -487,11 +499,18 @@ class NetworkPilotAPI(http.Controller):
     def get_stale_contacts(self, **kwargs):
         days = request.httprequest.args.get('days', default=21, type=int)
         threshold = fields.Datetime.now() - timedelta(days=days)
+        active_contact_ids = request.env['networkpilot.reminder'].sudo().search([
+            ('user_id', '=', self._current_user_id()),
+            ('status', '=', 'active'),
+            ('contact_id', '!=', False)
+        ]).mapped('contact_id.id')
+
         contacts = request.env['networkpilot.contact'].sudo().search(
             self._contact_domain() + [
                 '|',
                 ('last_interaction_date', '=', False),
                 ('last_interaction_date', '<', threshold),
+                ('id', 'not in', active_contact_ids),
             ],
             order='last_interaction_date asc, create_date asc',
             limit=20,
@@ -514,9 +533,26 @@ class NetworkPilotAPI(http.Controller):
 
     @http.route('/api/v1/categories', type='http', auth='user', methods=['GET'], csrf=False)
     def get_categories(self, **kwargs):
-        categories = request.env['networkpilot.category'].sudo().search([
+        Category = request.env['networkpilot.category'].sudo()
+        categories = Category.search([
             ('user_id', '=', self._current_user_id()),
         ], order='name')
+        
+        if not categories:
+            default_categories = [
+                {'name': 'Профессиональное', 'color': '#0ea5e9'},
+                {'name': 'Личное', 'color': '#10b981'},
+                {'name': 'Нетворкинг', 'color': '#8b5cf6'},
+                {'name': 'Образование', 'color': '#f59e0b'},
+            ]
+            for cat in default_categories:
+                new_cat = Category.create({
+                    'user_id': self._current_user_id(),
+                    'name': cat['name'],
+                    'color': cat['color']
+                })
+                categories |= new_cat
+                
         return self._json_response([self._category_payload(category) for category in categories])
 
     @http.route('/api/v1/categories', type='http', auth='user', methods=['POST'], csrf=False)
@@ -847,7 +883,7 @@ class NetworkPilotAPI(http.Controller):
                 "company": c.company or "Unknown",
                 "importance": c.importance_level,
                 "notes": c.notes or "",
-                "status": "Dormant" if not c.last_interaction_date else "Active",
+                "status": c.network_status.capitalize() if c.network_status else "Target",
                 "days_since_interaction": (date.today() - c.last_interaction_date.date()).days if c.last_interaction_date else 999
             })
             

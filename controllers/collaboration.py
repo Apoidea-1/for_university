@@ -84,14 +84,7 @@ class NetworkPilotCollaborationAPI(http.Controller):
         )
 
     def _contact_status(self, contact):
-        if not contact.last_interaction_date:
-            return "target" if contact.importance_level in ("high", "strategic") else "dormant"
-        days_since = (date.today() - contact.last_interaction_date.date()).days
-        if days_since <= 21:
-            return "active"
-        if contact.importance_level in ("high", "strategic"):
-            return "target"
-        return "dormant" if days_since > 45 else "active"
+        return contact.network_status if contact.network_status else "target"
 
     def _status_color(self, status):
         return {
