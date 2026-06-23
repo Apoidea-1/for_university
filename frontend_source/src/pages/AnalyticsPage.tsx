@@ -172,7 +172,7 @@ export function AnalyticsPage() {
               <div className="h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={categoriesQuery.data ?? []} layout="vertical" margin={{ left: 20 }}>
-                    <XAxis type="number" stroke="#64748b" tickLine={false} axisLine={false} />
+                    <XAxis type="number" stroke="#64748b" tickLine={false} axisLine={false} allowDecimals={false} />
                     <YAxis type="category" dataKey="category_name" stroke="#64748b" tickLine={false} axisLine={false} width={100} />
                     <Tooltip />
                     <Bar dataKey="count" radius={[0, 10, 10, 0]}>

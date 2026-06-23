@@ -49,10 +49,10 @@ export function IntegrationsPage() {
           </p>
           <Button
             className="w-full"
-            variant={integration.provider === "google_calendar" ? "primary" : "secondary"}
-            onClick={() => connectMutation.mutate(integration.provider)}
+            variant="secondary"
+            disabled
           >
-            {integration.provider === "google_calendar" ? "Подключить демо" : "Архитектура готова"}
+            В разработке
           </Button>
         </Card>
       ))}

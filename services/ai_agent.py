@@ -230,7 +230,40 @@ class LightweightContactAgent:
         contact = self.process_contact_data(extracted_text, is_image=False)
         return json.loads(contact.model_dump_json())
     def plan_contact_strategy(self, snapshot):
-        return {"next_action": "Запланировать follow-up", "summary": "Контакт обновлен."}
+        try:
+            system_msg = """Вы — эксперт по нетворкингу. Ваша задача — проанализировать данные контакта и предложить стратегию следующего шага.
+Отвечай СТРОГО в формате JSON без markdown:
+{
+  "next_action": "Короткое действие, например 'Назначить встречу'",
+  "summary": "Краткое обоснование",
+  "recommended_channel": "Telegram/Email/LinkedIn",
+  "meeting_goal": "Цель",
+  "meeting_window": "Например 'На следующей неделе'",
+  "agenda": ["Пункт 1", "Пункт 2"],
+  "message_draft": "Текст сообщения для отправки"
+}"""
+            user_msg = f"Данные контакта:\n{json.dumps(snapshot, ensure_ascii=False, default=str)}"
+            messages = [
+                {"role": "system", "content": system_msg},
+                {"role": "user", "content": user_msg}
+            ]
+            content = self._call_api(messages)
+            fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.S)
+            if fenced:
+                content = fenced.group(1)
+            return json.loads(content)
+        except Exception as e:
+            import logging
+            logging.error(f"AI Strategy Error: {str(e)}", exc_info=True)
+            return {
+                "next_action": "Запланировать follow-up",
+                "summary": "Не удалось получить ответ ИИ. Используйте стандартный подход.",
+                "recommended_channel": "Любой удобный",
+                "meeting_goal": "Поддержание связи",
+                "meeting_window": "В ближайшее время",
+                "agenda": ["Свободное общение", "Обсуждение текущих проектов"],
+                "message_draft": "Привет! Давно не общались, давай как-нибудь созвонимся или выпьем кофе?"
+            }
         
     def suggest_network_reminders(self, contacts_data: List[dict]) -> List[dict]:
         system_prompt = """
