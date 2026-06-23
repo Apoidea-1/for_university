@@ -218,7 +218,7 @@ export function DashboardPage() {
                       content={({ active, payload }) => {
                         if (active && payload && payload.length) {
                           return (
-                            <div className="rounded border border-white/10 bg-slate-900 px-3 py-2 text-sm shadow-xl text-white">
+                            <div className="rounded border border-white/10 bg-panel px-3 py-2 text-sm shadow-xl text-white">
                               {payload[0].name}: {payload[0].value}
                             </div>
                           );
