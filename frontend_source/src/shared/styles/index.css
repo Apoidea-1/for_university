@@ -44,3 +44,98 @@ body {
 .field-hint {
   @apply mt-2 text-xs text-slate-400;
 }
+
+/* ===== THEME SWITCH TRANSITION =====
+   Only active for ~480ms while html.np-switching is present.
+   Hover animations run at their own speed at all other times.
+   !important is needed so these override per-element transition values. */
+html.np-switching *,
+html.np-switching *::before,
+html.np-switching *::after {
+  transition:
+    color            0.38s ease,
+    background-color 0.38s ease,
+    border-color     0.38s ease,
+    box-shadow       0.38s ease,
+    fill             0.38s ease,
+    stroke           0.38s ease !important;
+}
+
+/* ===== CREAM THEME ===== */
+
+[data-theme="cream"] {
+  color-scheme: light;
+}
+
+[data-theme="cream"] * {
+  scrollbar-color: rgba(160, 120, 60, 0.3) transparent;
+}
+
+[data-theme="cream"] body {
+  color: #1a130c;
+  background:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.07), transparent 32%),
+    radial-gradient(circle at 85% 15%, rgba(220, 160, 60, 0.09), transparent 22%),
+    linear-gradient(180deg, #fdf8f0 0%, #f5ece0 100%);
+}
+
+[data-theme="cream"] .glass-panel {
+  background-color: rgba(253, 248, 240, 0.9) !important;
+  border-color: rgba(200, 168, 110, 0.28) !important;
+  box-shadow: 0 25px 60px rgba(140, 100, 40, 0.09) !important;
+}
+
+[data-theme="cream"] .shadow-panel {
+  box-shadow: 0 25px 60px rgba(140, 100, 40, 0.09) !important;
+}
+
+[data-theme="cream"] .bg-mesh {
+  background-image:
+    radial-gradient(circle at top left, rgba(20, 184, 166, 0.11), transparent 36%),
+    radial-gradient(circle at bottom right, rgba(210, 150, 50, 0.14), transparent 28%),
+    linear-gradient(135deg, #f0e3cc 0%, #e8d5b5 100%) !important;
+}
+
+/* Panel backgrounds */
+[data-theme="cream"] .bg-app { background-color: #fdf8f0 !important; }
+[data-theme="cream"] .bg-panel { background-color: #fdf8f0 !important; }
+[data-theme="cream"] .bg-panelSoft { background-color: rgba(238, 224, 200, 0.85) !important; }
+[data-theme="cream"] .bg-white\/5 { background-color: rgba(160, 120, 60, 0.06) !important; }
+[data-theme="cream"] .bg-white\/10 { background-color: rgba(160, 120, 60, 0.10) !important; }
+
+/* Borders */
+[data-theme="cream"] .border-borderSoft { border-color: rgba(200, 168, 110, 0.28) !important; }
+[data-theme="cream"] .border-white\/5 { border-color: rgba(180, 140, 70, 0.12) !important; }
+[data-theme="cream"] .border-white\/10 { border-color: rgba(180, 140, 70, 0.20) !important; }
+
+/* Text */
+[data-theme="cream"] .text-white { color: #1a130c !important; }
+[data-theme="cream"] .text-slate-100 { color: #1a130c !important; }
+[data-theme="cream"] .text-slate-200 { color: #2d2016 !important; }
+[data-theme="cream"] .text-slate-300 { color: #4a3520 !important; }
+[data-theme="cream"] .text-slate-400 { color: #6b5030 !important; }
+[data-theme="cream"] .text-slate-500 { color: #8c7050 !important; }
+
+[data-theme="cream"] .field-label { color: #4a3520 !important; }
+[data-theme="cream"] .field-hint { color: #6b5030 !important; }
+
+/* Hover text */
+[data-theme="cream"] .hover\:text-white:hover { color: #1a130c !important; }
+
+/* Hover backgrounds */
+[data-theme="cream"] .hover\:bg-white\/5:hover { background-color: rgba(160, 120, 60, 0.07) !important; }
+[data-theme="cream"] .hover\:bg-slate-800:hover { background-color: rgba(210, 190, 160, 0.6) !important; }
+
+/* Input */
+[data-theme="cream"] .bg-slate-950\/50 {
+  background-color: rgba(238, 224, 200, 0.6) !important;
+}
+
+/* Chart tooltip — escape # per CSS spec */
+[data-theme="cream"] .bg-\[\#0a1628\] {
+  background-color: #fdf8f0 !important;
+}
+
+/* NavLink active state already fine (bg-accent text-slate-950 = dark text on teal) */
+
+/* focus ring stays accent-colored — no override needed */

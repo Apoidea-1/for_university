@@ -5,6 +5,10 @@ import re
 import math
 from datetime import datetime
 from typing import List, Optional
+import ssl
+import requests as _requests
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 from urllib import request as urllib_request
 from dataclasses import dataclass, field, asdict
 @dataclass
@@ -71,9 +75,13 @@ class LightweightContactAgent:
             load_dotenv()
         except ImportError:
             pass
-        self.api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
-        self.endpoint = "https://openrouter.ai/api/v1/chat/completions"
-        self.model = "google/gemma-4-31b-it:free"
+        self.groq_api_key = os.getenv("GROQ_API_KEY", "").strip()
+        self.openrouter_api_key = os.getenv("OPENROUTER_API_KEY", "").strip()
+        self.groq_endpoint = "https://api.groq.com/openai/v1/chat/completions"
+        self.groq_text_model = "llama-3.3-70b-versatile"
+        self.groq_vision_model = "meta-llama/llama-4-scout-17b-16e-instruct"
+        self.openrouter_endpoint = "https://openrouter.ai/api/v1/chat/completions"
+        self.openrouter_model = "google/gemma-4-31b-it:free"
         self.system_prompt = """
 Вы — умный AI-ассистент для персональной CRM системы "Network Pilot".
 Ваша задача — извлекать информацию о контактах из неструктурированного текста или распознанного текста с визитки и возвращать валидный JSON.
@@ -105,46 +113,77 @@ class LightweightContactAgent:
 }
 Если данных нет, передавайте null.
 """
+
     @property
     def is_remote_available(self):
-        return bool(self.api_key)
+        return bool(self.groq_api_key or self.openrouter_api_key)
+
+    def _call_api(self, messages, use_vision=False, temperature=0.1):
+        groq_err = None
+        if self.groq_api_key:
+            model = self.groq_vision_model if use_vision else self.groq_text_model
+            try:
+                resp = _requests.post(
+                    self.groq_endpoint,
+                    headers={"Authorization": f"Bearer {self.groq_api_key}"},
+                    json={"model": model, "messages": messages, "temperature": temperature},
+                    verify=False,
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+            except Exception as e:
+                groq_err = e
+
+        if self.openrouter_api_key:
+            try:
+                resp = _requests.post(
+                    self.openrouter_endpoint,
+                    headers={
+                        "Authorization": f"Bearer {self.openrouter_api_key}",
+                        "HTTP-Referer": "https://networkpilot.app",
+                    },
+                    json={
+                        "model": self.openrouter_model,
+                        "messages": messages,
+                        "temperature": temperature,
+                        "response_format": {"type": "json_object"},
+                    },
+                    verify=False,
+                    timeout=30,
+                )
+                resp.raise_for_status()
+                return resp.json()["choices"][0]["message"]["content"]
+            except Exception as or_err:
+                if groq_err:
+                    raise RuntimeError(f"Groq: {groq_err}; OpenRouter: {or_err}")
+                raise RuntimeError(f"OpenRouter: {or_err}")
+
+        if groq_err:
+            raise RuntimeError(f"Groq: {groq_err}")
+        raise RuntimeError("No AI provider configured: set GROQ_API_KEY or OPENROUTER_API_KEY")
     def process_contact_data(self, input_data: str, is_image: bool = False) -> Contact:
-        if not self.is_remote_available:
-            raise RuntimeError("OPENROUTER_API_KEY is not set.")
         messages = [{"role": "system", "content": self.system_prompt}]
         if is_image:
             messages.append({
                 "role": "user",
                 "content": [
-                    {"type": "text", "text": "Извлеки информацию с этой визитки."},
+                    {"type": "text", "text": (
+                        "Прочитай ВСЕ слова на этой визитке. "
+                        "Найди имя и фамилию владельца визитки: это обычно самый крупный текст, "
+                        "может быть написан на русском языке заглавными буквами (например ИВАН ИВАНОВ — "
+                        "это first_name=Иван, last_name=Иванов). "
+                        "Не путай имя человека с названием компании. "
+                        "Верни строго JSON без markdown-разметки."
+                    )},
                     {"type": "image_url", "image_url": {"url": input_data}}
                 ]
             })
         else:
             messages.append({"role": "user", "content": f"Извлеки данные из текста: {input_data}"})
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.1,
-            "response_format": {"type": "json_object"}
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib_request.Request(
-            self.endpoint,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-                "HTTP-Referer": "https://networkpilot.app",
-            },
-            method="POST",
-        )
-        try:
-            with urllib_request.urlopen(req, timeout=30) as response:
-                result = json.loads(response.read().decode("utf-8"))
-        except Exception as e:
-            raise RuntimeError(f"API request failed: {e}")
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+        content = self._call_api(messages, use_vision=is_image)
+
         fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.S)
         if fenced:
             content = fenced.group(1)
@@ -173,16 +212,27 @@ class LightweightContactAgent:
         raw = image_base64.strip()
         if not raw.startswith("data:"):
             raw = f"data:image/jpeg;base64,{raw}"
-        
-        contact = self.process_contact_data(raw, is_image=True)
+
+        # Step 1: vision model reads all text from the image
+        ocr_messages = [{
+            "role": "user",
+            "content": [
+                {"type": "text", "text": (
+                    "Прочитай весь текст на этой визитке и перечисли его построчно. "
+                    "Просто текст, никакой интерпретации."
+                )},
+                {"type": "image_url", "image_url": {"url": raw}},
+            ],
+        }]
+        extracted_text = self._call_api(ocr_messages, use_vision=True)
+
+        # Step 2: text model parses extracted text into structured contact
+        contact = self.process_contact_data(extracted_text, is_image=False)
         return json.loads(contact.model_dump_json())
     def plan_contact_strategy(self, snapshot):
         return {"next_action": "Запланировать follow-up", "summary": "Контакт обновлен."}
         
     def suggest_network_reminders(self, contacts_data: List[dict]) -> List[dict]:
-        if not self.is_remote_available:
-            raise RuntimeError("OPENROUTER_API_KEY is not set.")
-            
         system_prompt = """
 Вы — эксперт по нетворкингу. Пользователь передаст вам список своих контактов в формате JSON.
 Определите 3-5 самых важных контактов, с которыми пользователю стоит связаться прямо сейчас (например, статус "Dormant" (затухающие) или важные контакты, с которыми давно не было общения).
@@ -206,31 +256,9 @@ class LightweightContactAgent:
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": f"Вот список контактов:\n{json.dumps(contacts_data, ensure_ascii=False)}"}
         ]
-        
-        payload = {
-            "model": self.model,
-            "messages": messages,
-            "temperature": 0.3,
-            "response_format": {"type": "json_object"}
-        }
-        data = json.dumps(payload).encode("utf-8")
-        req = urllib_request.Request(
-            self.endpoint,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-                "HTTP-Referer": "https://networkpilot.app",
-            },
-            method="POST",
-        )
-        try:
-            with urllib_request.urlopen(req, timeout=45) as response:
-                result = json.loads(response.read().decode("utf-8"))
-        except Exception as e:
-            raise RuntimeError(f"API request failed: {e}")
-            
-        content = result.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+        content = self._call_api(messages, temperature=0.3)
+
         fenced = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.S)
         if fenced:
             content = fenced.group(1)

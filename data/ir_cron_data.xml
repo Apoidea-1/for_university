@@ -10,5 +10,14 @@
             <field name="interval_type">days</field>
             <field name="active" eval="True"/>
         </record>
+        <record id="ir_cron_push_reminders" model="ir.cron">
+            <field name="name">Network Pilot: Отправка push-напоминаний</field>
+            <field name="model_id" ref="model_networkpilot_push_subscription"/>
+            <field name="state">code</field>
+            <field name="code">model.cron_send_push_reminders()</field>
+            <field name="interval_number">5</field>
+            <field name="interval_type">minutes</field>
+            <field name="active" eval="True"/>
+        </record>
     </data>
 </odoo>

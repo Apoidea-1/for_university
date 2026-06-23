@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { useNavigate } from "react-router-dom";
+
 import { listContacts } from "@/api/contacts";
 import { createRelationship, deleteRelationship, getNetworkGraph, listRelationships } from "@/api/network";
 import { Alert } from "@/components/ui/Alert";
@@ -26,6 +28,7 @@ const relationshipOptions = [
 ];
 
 export function NetworkPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [sourceContactId, setSourceContactId] = useState("");
   const [targetContactId, setTargetContactId] = useState("");
@@ -98,7 +101,12 @@ export function NetworkPage() {
               ))}
             </div>
           </div>
-          {graph ? <NetworkGraph data={graph} /> : null}
+          {graph ? (
+            <NetworkGraph
+              data={graph}
+              onContactClick={(id) => navigate(`/contacts/${id}`)}
+            />
+          ) : null}
         </Card>
 
         <Card className="space-y-4">

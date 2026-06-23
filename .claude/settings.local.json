@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "allow": [
+      "Skill(run)",
+      "Skill(run:*)",
+      "Bash(python -m pytest tests/test_ai_agent.py -v)",
+      "Bash(python -m pytest tests/test_ai_agent.py --import-mode=importlib -v)",
+      "Bash(python -m pytest test_ai_agent.py -v)",
+      "PowerShell(docker exec team8-odoo printenv GROQ_API_KEY)",
+      "PowerShell(docker restart team8-odoo)",
+      "PowerShell(docker exec team8-odoo curl -s -X POST https://api.groq.com/openai/v1/chat/completions -H \"Authorization: Bearer $env:GROQ_API_KEY\" -H \"Content-Type: application/json\" -d '{\\\\\"model\\\\\": \\\\\"llama-3.3-70b-versatile\\\\\", \\\\\"messages\\\\\": [{\\\\\"role\\\\\": \\\\\"user\\\\\", \\\\\"content\\\\\": \\\\\"hi\\\\\"}]}' 2>&1)",
+      "PowerShell(docker exec team8-odoo bash -c 'curl -s -X POST https://api.groq.com/openai/v1/chat/completions -H \"Authorization: Bearer $GROQ_API_KEY\" -H \"Content-Type: application/json\" -d \"{\\\\\"model\\\\\": \\\\\"llama-3.3-70b-versatile\\\\\", \\\\\"messages\\\\\": [{\\\\\"role\\\\\": \\\\\"user\\\\\", \\\\\"content\\\\\": \\\\\"hi\\\\\"}]}\"')",
+      "PowerShell(docker compose -f \"c:\\\\Users\\\\����\\\\Desktop\\\\for_university-main\\\\docker-compose.yml\" down)",
+      "PowerShell(docker compose -f \"c:\\\\Users\\\\����\\\\Desktop\\\\for_university-main\\\\docker-compose.yml\" up -d)",
+      "PowerShell(docker exec team8-odoo bash -c 'curl -sv -X POST https://api.groq.com/openai/v1/chat/completions -H \"Authorization: Bearer $GROQ_API_KEY\" -H \"Content-Type: application/json\" -d \"{\\\\\"model\\\\\": \\\\\"llama-3.3-70b-versatile\\\\\", \\\\\"messages\\\\\": [{\\\\\"role\\\\\": \\\\\"user\\\\\", \\\\\"content\\\\\": \\\\\"hi\\\\\"}]}\" 2>&1 | head -40')",
+      "PowerShell(docker exec team8-odoo bash -c 'curl -s -X POST http://localhost:8069/api/v1/ai/parse-unstructured-contact -H \"Content-Type: application/json\" -b \"$\\(cat /tmp/session.cookie 2>/dev/null\\)\" -d \"{\\\\\"text\\\\\": \\\\\"���� ���஢, CEO � Yandex\\\\\"}\" 2>&1')",
+      "PowerShell(docker restart team8-odoo 2>&1)",
+      "PowerShell(docker exec team8-odoo find /mnt/extra-addons -name \"index.html\")",
+      "PowerShell(docker exec team8-odoo python3 -c \"import pywebpush; print\\('ok'\\)\" 2>&1)",
+      "PowerShell(docker exec team8-odoo pip3 install pywebpush 2>&1)",
+      "PowerShell(docker exec team8-odoo pip3 install pywebpush --break-system-packages 2>&1)",
+      "PowerShell(docker exec team8-odoo bash -c \"odoo -d odoo -u networkpilot --stop-after-init 2>&1\")",
+      "PowerShell(docker exec team8-odoo bash -c \"cat /etc/odoo/odoo.conf 2>/dev/null || cat /etc/odoo.conf 2>/dev/null || find / -name 'odoo.conf' 2>/dev/null | head -3\")",
+      "PowerShell(docker exec team8-odoo bash -c \"odoo -d odoo --db_host=team8-db --db_user=odoo --db_password=odoo -u networkpilot --stop-after-init 2>&1\")",
+      "PowerShell(docker exec team8-odoo pip3 install \"pyOpenSSL>=24.0.0\" --break-system-packages 2>&1)",
+      "PowerShell(docker exec team8-odoo bash -c \"odoo -d postgres_university --db_host=team8-db --db_user=odoo --db_password=odoo -u networkpilot --stop-after-init 2>&1\")",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"SELECT column_name FROM information_schema.columns WHERE table_name='networkpilot_reminder' ORDER BY ordinal_position;\" 2>&1)",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"ALTER TABLE networkpilot_reminder ADD COLUMN IF NOT EXISTS push_notified boolean NOT NULL DEFAULT false;\" 2>&1)",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"CREATE TABLE IF NOT EXISTS networkpilot_push_subscription \\(id serial PRIMARY KEY, user_id integer NOT NULL REFERENCES res_users\\(id\\) ON DELETE CASCADE, endpoint text NOT NULL UNIQUE, p256dh text NOT NULL, auth text NOT NULL, create_uid integer, write_uid integer, create_date timestamp, write_date timestamp\\);\" 2>&1)",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"INSERT INTO ir_model \\(name, model, state\\) VALUES \\('Web Push Subscription', 'networkpilot.push_subscription', 'manual'\\) ON CONFLICT DO NOTHING;\" 2>&1)",
+      "PowerShell(docker exec team8-odoo bash -c \"odoo -d postgres_university --db_host=team8-db --db_user=odoo --db_password=odoo -u networkpilot --stop-after-init --no-http 2>&1\")",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"SELECT name, state FROM ir_module_module WHERE name LIKE '%network%' OR name LIKE '%pilot%';\" 2>&1)",
+      "PowerShell(docker exec team8-odoo bash -c \"odoo -d postgres_university --db_host=team8-db --db_user=odoo --db_password=odoo -u networkPilotNew --stop-after-init 2>&1\")",
+      "PowerShell(docker exec team8-db psql -U odoo -d postgres_university -c \"SELECT column_name FROM information_schema.columns WHERE table_name='networkpilot_reminder';\" 2>&1)"
+    ]
+  }
+}

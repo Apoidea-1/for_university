@@ -997,3 +997,86 @@ class NetworkPilotAPI(http.Controller):
             'status': integration.status,
             'message': 'Integration connected in mock mode',
         })
+
+    # ── Web Push Notifications ────────────────────────────────────────────
+
+    _VAPID_PUBLIC_KEY = (
+        "BLNce-BmbtAdSF0MzZ5_0U8JUBFyrsE0ngkgGwNzmZNl828UAdpnUB2gRp-exMO5"
+        "MmRyK6pm0loPDJxOtdxvSck"
+    )
+
+    @http.route('/sw.js', type='http', auth='public', methods=['GET'], csrf=False)
+    def service_worker(self, **kwargs):
+        """Serves the Service Worker at root scope so it can control /app/."""
+        sw = r"""
+self.addEventListener('push', function (event) {
+  let data = {};
+  try { data = event.data.json(); } catch (e) {}
+  const title = data.title || 'NetWorkPilot';
+  const options = {
+    body: data.body || '',
+    icon: '/networkPilotNew/static/app/assets/favicon.ico',
+    badge: '/networkPilotNew/static/app/assets/favicon.ico',
+    tag: data.tag || 'np-reminder',
+    data: { url: data.url || '/app/reminders' },
+    actions: [
+      { action: 'open', title: 'Открыть' },
+      { action: 'done',  title: 'Готово'  },
+    ],
+  };
+  event.waitUntil(self.registration.showNotification(title, options));
+});
+
+self.addEventListener('notificationclick', function (event) {
+  event.notification.close();
+  const url = event.notification.data?.url || '/app/reminders';
+  event.waitUntil(clients.openWindow(url));
+});
+"""
+        return request.make_response(
+            sw,
+            headers=[
+                ('Content-Type', 'application/javascript; charset=utf-8'),
+                ('Service-Worker-Allowed', '/'),
+                ('Cache-Control', 'no-store'),
+            ],
+        )
+
+    @http.route('/api/v1/push/vapid-public-key', type='http', auth='public', methods=['GET'], csrf=False)
+    def push_vapid_key(self, **kwargs):
+        return self._json_response({'public_key': self._VAPID_PUBLIC_KEY})
+
+    @http.route('/api/v1/push/subscribe', type='http', auth='user', methods=['POST'], csrf=False)
+    def push_subscribe(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        data = self._json_payload()
+        if not data:
+            return self._bad_json()
+        endpoint = data.get('endpoint', '').strip()
+        p256dh   = data.get('p256dh', '').strip()
+        auth     = data.get('auth', '').strip()
+        if not (endpoint and p256dh and auth):
+            return self._json_response({'detail': 'endpoint, p256dh, auth required'}, status=400)
+
+        Sub = request.env['networkpilot.push_subscription'].sudo()
+        existing = Sub.search([('endpoint', '=', endpoint)], limit=1)
+        if existing:
+            existing.write({'p256dh': p256dh, 'auth': auth, 'user_id': self._current_user_id()})
+        else:
+            Sub.create({'user_id': self._current_user_id(), 'endpoint': endpoint, 'p256dh': p256dh, 'auth': auth})
+        return self._json_response({'ok': True}, status=201)
+
+    @http.route('/api/v1/push/unsubscribe', type='http', auth='user', methods=['POST'], csrf=False)
+    def push_unsubscribe(self, **kwargs):
+        forbidden = self._forbid_cross_origin()
+        if forbidden:
+            return forbidden
+        data = self._json_payload()
+        endpoint = (data or {}).get('endpoint', '').strip()
+        if endpoint:
+            request.env['networkpilot.push_subscription'].sudo().search(
+                [('endpoint', '=', endpoint)]
+            ).unlink()
+        return self._json_response({'ok': True})

@@ -23,6 +23,7 @@ services:
       HOST: db
       USER: odoo
       PASSWORD: odoo
+      GROQ_API_KEY: "${GROQ_API_KEY}"
     volumes:
       - team8_odoo_data:/var/lib/odoo
       - .:/mnt/extra-addons/networkPilotNew

@@ -6,6 +6,7 @@ import { listContacts } from "@/api/contacts";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { useAuth } from "@/hooks/useAuth";
+import { useTheme } from "@/hooks/useTheme";
 import { cn } from "@/shared/lib/cn";
 
 const navItems = [
@@ -19,6 +20,7 @@ const navItems = [
 
 export function AppShell() {
   const { logout, user } = useAuth();
+  const { theme, toggle } = useTheme();
   const [search, setSearch] = useState("");
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const deferredSearch = useDeferredValue(search.trim());
@@ -75,7 +77,25 @@ export function AppShell() {
             </nav>
 
             <div className="mt-6 rounded-2xl border border-borderSoft bg-panelSoft p-4">
-              <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Профиль</p>
+              <div className="flex items-center justify-between">
+                <p className="text-xs uppercase tracking-[0.24em] text-slate-500">Профиль</p>
+                <button
+                  onClick={toggle}
+                  className="rounded-xl p-1.5 text-slate-400 transition hover:bg-white/5 hover:text-slate-200"
+                  title={theme === "dark" ? "Кремовая тема" : "Тёмная тема"}
+                >
+                  {theme === "dark" ? (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <circle cx="12" cy="12" r="4" />
+                      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41" />
+                    </svg>
+                  ) : (
+                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                    </svg>
+                  )}
+                </button>
+              </div>
               <p className="mt-3 text-base font-semibold text-white">{user?.full_name}</p>
               <p className="mt-1 text-sm text-slate-400">{user?.email}</p>
               <Button className="mt-4 w-full" variant="secondary" onClick={() => void logout()}>

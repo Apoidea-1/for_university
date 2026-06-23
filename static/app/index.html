@@ -8,8 +8,16 @@
       name="description"
       content="NetWorkPilot is a personal networking CRM for students and young professionals."
     />
-    <script type="module" crossorigin src="/networkPilotNew/static/app/assets/index-DPOixY8h.js"></script>
-    <link rel="stylesheet" crossorigin href="/networkPilotNew/static/app/assets/index-Dnt4zPj4.css">
+    <script>
+      (function () {
+        try {
+          var t = localStorage.getItem("np-theme");
+          if (t === "cream") document.documentElement.dataset.theme = "cream";
+        } catch (e) {}
+      })();
+    </script>
+    <script type="module" crossorigin src="/networkPilotNew/static/app/assets/index-DGq5AdnE.js"></script>
+    <link rel="stylesheet" crossorigin href="/networkPilotNew/static/app/assets/index-DdVLxMYs.css">
   </head>
   <body class="bg-app text-slate-100">
     <div id="root"></div>

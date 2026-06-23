@@ -9,3 +9,4 @@ from . import ai_suggestion
 from . import integration
 from . import activity_log
 from . import res_users
+from . import push_subscription

@@ -66,7 +66,9 @@ export function BusinessCardScanner({
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Имя</p>
-              <p className="mt-1 text-sm text-white">{result.full_name || "Не найдено"}</p>
+              <p className="mt-1 text-sm text-white">
+                {[result.first_name, result.last_name].filter(Boolean).join(" ") || "Не найдено"}
+              </p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Компания</p>
@@ -78,7 +80,7 @@ export function BusinessCardScanner({
             </div>
             <div>
               <p className="text-xs uppercase tracking-[0.18em] text-slate-500">Email / Phone</p>
-              <p className="mt-1 text-sm text-white">{result.email || result.phone || "Не найдено"}</p>
+              <p className="mt-1 text-sm text-white break-all">{result.email || result.phone || "Не найдено"}</p>
             </div>
           </div>
 

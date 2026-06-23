@@ -1,6 +1,20 @@
 import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Cell, Line, LineChart, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import {
+  Area,
+  AreaChart,
+  CartesianGrid,
+  Cell,
+  Line,
+  LineChart,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  type TooltipProps,
+  XAxis,
+  YAxis,
+} from "recharts";
 import { Link } from "react-router-dom";
 
 import { getAnalyticsOverview, getCategoryAnalytics } from "@/api/analytics";
@@ -16,6 +30,32 @@ import { MetricCard } from "@/components/ui/MetricCard";
 import { Spinner } from "@/components/ui/Spinner";
 import { formatDateTime } from "@/shared/lib/format";
 import { getReminderTypeLabel } from "@/shared/lib/labels";
+
+function formatTick(dateStr: string) {
+  const parts = dateStr.split("-");
+  if (parts.length !== 3) return dateStr;
+  const months = ["янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"];
+  const m = parseInt(parts[1], 10) - 1;
+  return `${parseInt(parts[2], 10)} ${months[m] ?? ""}`;
+}
+
+function ActivityTooltip({ active, payload, label }: TooltipProps<number, string>) {
+  if (!active || !payload?.length) return null;
+  return (
+    <div className="rounded-xl border border-white/10 bg-[#0a1628] px-4 py-3 shadow-2xl">
+      <p className="mb-2 text-[11px] font-semibold uppercase tracking-widest text-slate-500">{label}</p>
+      {payload.map((entry) => (
+        <div key={entry.dataKey} className="flex items-center gap-2 py-0.5">
+          <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: entry.color }} />
+          <span className="text-sm text-slate-400">
+            {entry.dataKey === "contacts_added" ? "Контакты" : "Взаимодействия"}
+          </span>
+          <span className="ml-auto pl-4 text-sm font-bold text-white">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function DashboardPage() {
   const queryClient = useQueryClient();
@@ -69,16 +109,71 @@ export function DashboardPage() {
             </div>
             <Badge>{overviewQuery.data?.stale_contacts_count ?? 0} без общения</Badge>
           </div>
-          <div className="mt-6 h-[300px]">
+          <div className="mt-6 h-[280px]">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={overviewQuery.data?.activity_timeline ?? []}>
-                <XAxis dataKey="date" stroke="#64748b" tickLine={false} axisLine={false} />
-                <YAxis stroke="#64748b" tickLine={false} axisLine={false} />
-                <Tooltip />
-                <Line type="monotone" dataKey="contacts_added" stroke="#14b8a6" strokeWidth={3} dot={false} />
-                <Line type="monotone" dataKey="interactions_logged" stroke="#f59e0b" strokeWidth={3} dot={false} />
-              </LineChart>
+              <AreaChart data={overviewQuery.data?.activity_timeline ?? []} margin={{ top: 4, right: 4, left: -16, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="dash-grad-teal" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#14b8a6" stopOpacity={0.28} />
+                    <stop offset="95%" stopColor="#14b8a6" stopOpacity={0} />
+                  </linearGradient>
+                  <linearGradient id="dash-grad-amber" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#f59e0b" stopOpacity={0.22} />
+                    <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="rgba(255,255,255,0.04)" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  stroke="#475569"
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={formatTick}
+                  tick={{ fontSize: 11, fill: "#475569" }}
+                  interval="preserveStartEnd"
+                />
+                <YAxis
+                  stroke="#475569"
+                  tickLine={false}
+                  axisLine={false}
+                  tick={{ fontSize: 11, fill: "#475569" }}
+                  allowDecimals={false}
+                />
+                <Tooltip content={<ActivityTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)", strokeWidth: 1 }} />
+                <Area
+                  type="monotone"
+                  dataKey="contacts_added"
+                  stroke="#14b8a6"
+                  strokeWidth={2.5}
+                  fill="url(#dash-grad-teal)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#14b8a6", stroke: "#0a1628", strokeWidth: 2.5 }}
+                  animationDuration={1100}
+                  animationEasing="ease-out"
+                />
+                <Area
+                  type="monotone"
+                  dataKey="interactions_logged"
+                  stroke="#f59e0b"
+                  strokeWidth={2.5}
+                  fill="url(#dash-grad-amber)"
+                  dot={false}
+                  activeDot={{ r: 5, fill: "#f59e0b", stroke: "#0a1628", strokeWidth: 2.5 }}
+                  animationDuration={1400}
+                  animationEasing="ease-out"
+                />
+              </AreaChart>
             </ResponsiveContainer>
+          </div>
+          <div className="mt-4 flex flex-wrap gap-5">
+            <div className="flex items-center gap-2">
+              <span className="h-px w-5 rounded-full bg-[#14b8a6]" />
+              <span className="text-xs text-slate-400">Новые контакты</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="h-px w-5 rounded-full bg-[#f59e0b]" />
+              <span className="text-xs text-slate-400">Взаимодействия</span>
+            </div>
           </div>
         </Card>
 
@@ -101,31 +196,41 @@ export function DashboardPage() {
               Открыть аналитику
             </Link>
           </div>
-          <div className="mt-6 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
-            <div className="h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={categoriesAnalyticsQuery.data ?? []} dataKey="count" nameKey="category_name" innerRadius={60} outerRadius={90}>
-                    {(categoriesAnalyticsQuery.data ?? []).map((item) => (
-                      <Cell key={item.category_name} fill={item.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
+          {(categoriesAnalyticsQuery.data ?? []).length === 0 ? (
+            <div className="mt-6 flex h-[220px] flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-white/10 text-center">
+              <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500">
+                <circle cx="12" cy="12" r="10" /><path d="M12 8v4M12 16h.01" />
+              </svg>
+              <p className="text-sm font-medium text-slate-400">Категории не назначены</p>
+              <p className="max-w-[240px] text-xs text-slate-500">Назначьте категории контактам, чтобы увидеть распределение сети.</p>
             </div>
-            <div className="space-y-3">
-              {(categoriesAnalyticsQuery.data ?? []).map((item) => (
-                <div key={item.category_name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
-                    <p className="font-medium text-slate-200">{item.category_name}</p>
+          ) : (
+            <div className="mt-6 grid gap-4 lg:grid-cols-[260px_minmax(0,1fr)]">
+              <div className="h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={categoriesAnalyticsQuery.data ?? []} dataKey="count" nameKey="category_name" innerRadius={60} outerRadius={90}>
+                      {(categoriesAnalyticsQuery.data ?? []).map((item) => (
+                        <Cell key={item.category_name} fill={item.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="space-y-3">
+                {(categoriesAnalyticsQuery.data ?? []).map((item) => (
+                  <div key={item.category_name} className="flex items-center justify-between rounded-2xl border border-white/10 bg-white/5 px-4 py-3">
+                    <div className="flex items-center gap-3">
+                      <span className="h-3 w-3 rounded-full" style={{ backgroundColor: item.color }} />
+                      <p className="font-medium text-slate-200">{item.category_name}</p>
+                    </div>
+                    <p className="text-sm text-slate-400">{item.count}</p>
                   </div>
-                  <p className="text-sm text-slate-400">{item.count}</p>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </Card>
 
         <Card>

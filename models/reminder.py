@@ -25,3 +25,5 @@ class Reminder(models.Model):
         ('reconnect', 'Reconnect'),
         ('custom', 'Custom')
     ], string='Reminder Type', default='follow_up', required=True)
+
+    push_notified = fields.Boolean(string='Push Notification Sent', default=False, index=True)
