@@ -200,8 +200,8 @@ export function MessagesPage() {
                 disabled={!body.trim()}
                 onClick={() =>
                   createMutation.mutate({
-                    sender_contact_id: messageDirection === "inbound" ? Number(selectedContactId) : undefined,
-                    recipient_contact_id: messageDirection === "outbound" ? Number(selectedContactId) : undefined,
+                    sender_contact_id: messageDirection === "inbound" ? Number(selectedContactId) : undefined as any,
+                    recipient_contact_id: messageDirection === "outbound" ? Number(selectedContactId) : undefined as any,
                     body,
                     message_type: messageType,
                     sent_at: new Date().toISOString(),

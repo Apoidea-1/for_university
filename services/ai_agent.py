@@ -28,6 +28,7 @@ class Contact:
     phone: Optional[str] = None
     email: Optional[str] = None
     tags: List[str] = field(default_factory=list)
+    category_name: Optional[str] = None
     interactions: List[Interaction] = field(default_factory=list)
     created_at: datetime = field(default_factory=datetime.now)
     suggested_reminder: Optional[dict] = None
@@ -105,6 +106,7 @@ class LightweightContactAgent:
   "phone": "Телефон",
   "email": "Email",
   "tags": ["тег1", "тег2"],
+  "category_name": "Имя категории",
   "suggested_reminder": {
     "title": "Текст напоминания",
     "due_in_days": 2,
@@ -206,6 +208,7 @@ class LightweightContactAgent:
             phone=parsed.get("phone"),
             email=parsed.get("email"),
             tags=parsed.get("tags") or [],
+            category_name=parsed.get("category_name"),
             suggested_reminder=parsed.get("suggested_reminder")
         )
     def extract_business_card(self, image_base64):

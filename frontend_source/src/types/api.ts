@@ -137,6 +137,7 @@ export interface BusinessCardScanResult {
   linkedin: string | null;
   notes: string | null;
   tags: string[] | null;
+  category_name?: string | null;
   confidence: number | null;
 }
 

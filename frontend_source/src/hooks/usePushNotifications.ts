@@ -47,7 +47,7 @@ export function usePushNotifications() {
 
       const sub = await reg.pushManager.subscribe({
         userVisibleOnly: true,
-        applicationServerKey: urlB64ToUint8Array(public_key),
+        applicationServerKey: urlB64ToUint8Array(public_key) as any,
       });
 
       const json = sub.toJSON();

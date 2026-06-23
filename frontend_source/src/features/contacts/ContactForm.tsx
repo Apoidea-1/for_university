@@ -106,44 +106,52 @@ export function ContactForm({
   const applyBusinessCard = (result: BusinessCardScanResult) => {
     const fallbackParts = (result.full_name || "").split(" ").filter(Boolean);
     if (result.first_name || fallbackParts[0]) {
-      form.setValue("first_name", result.first_name || fallbackParts[0] || "");
+      form.setValue("first_name", result.first_name || fallbackParts[0] || "", { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.last_name || fallbackParts.slice(1).join(" ")) {
-      form.setValue("last_name", result.last_name || fallbackParts.slice(1).join(" "));
+      form.setValue("last_name", result.last_name || fallbackParts.slice(1).join(" "), { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.company) {
-      form.setValue("company", result.company);
+      form.setValue("company", result.company, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.role) {
-      form.setValue("role", result.role);
+      form.setValue("role", result.role, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.email) {
-      form.setValue("email", result.email);
+      form.setValue("email", result.email, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.phone) {
-      form.setValue("phone", result.phone);
+      form.setValue("phone", result.phone, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.telegram) {
-      form.setValue("telegram", result.telegram);
+      form.setValue("telegram", result.telegram, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.linkedin) {
-      form.setValue("linkedin", result.linkedin);
+      form.setValue("linkedin", result.linkedin, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
     if (result.tags && result.tags.length > 0) {
       const currentTags = parseTags(form.getValues("tag_names_text"));
       const merged = Array.from(new Set([...currentTags, ...result.tags]));
-      form.setValue("tag_names_text", merged.join(", "));
+      form.setValue("tag_names_text", merged.join(", "), { shouldValidate: true, shouldDirty: true, shouldTouch: true });
 
       if (merged.includes("bridge_contact") || merged.includes("mentor")) {
-        form.setValue("importance_level", "high");
+        form.setValue("importance_level", "high", { shouldValidate: true });
       } else if (merged.includes("peer")) {
-        form.setValue("importance_level", "medium");
+        form.setValue("importance_level", "medium", { shouldValidate: true });
       } else {
-        form.setValue("importance_level", "low");
+        form.setValue("importance_level", "low", { shouldValidate: true });
       }
     }
+    
+    if (result.category_name) {
+      const matchedCategory = categories.find((c) => c.name.toLowerCase() === result.category_name?.toLowerCase());
+      if (matchedCategory) {
+        form.setValue("category_id", String(matchedCategory.id), { shouldValidate: true, shouldDirty: true, shouldTouch: true });
+      }
+    }
+
     if (result.notes && !form.getValues("notes")) {
-      form.setValue("notes", result.notes);
+      form.setValue("notes", result.notes, { shouldValidate: true, shouldDirty: true, shouldTouch: true });
     }
   };
 
